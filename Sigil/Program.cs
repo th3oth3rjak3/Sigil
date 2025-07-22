@@ -30,11 +30,7 @@ class Program
         .MapResult(
             (RunOptions opts) => RunFile(opts),
             (BuildOptions opts) => BuildNative(opts),
-            errs =>
-            {
-                Console.WriteLine(string.Join(", ", errs));
-                return 64;
-            });
+            errs => 1);
 
     }
 
