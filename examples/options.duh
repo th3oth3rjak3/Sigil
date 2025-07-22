@@ -1,0 +1,23 @@
+let maybe_rect: Option<Rectangle> = Some(Rectangle(1.0, 2.0))
+// Or
+let maybe_rect: Option<Rectangle> = None
+
+// Forces you to handle both cases
+match maybe_rect {
+    Some(rect) => rect.area(),
+    None => 0.0
+}
+
+enum Option<T> {
+    Some(T),
+    None
+}
+
+maybe_rect.unwrap_or_else(|| Rectangle(0.0, 0.0))
+maybe_rect.map(|r| r.area())
+
+if maybe_rect.is_some() | rect | {
+    print(rect.area())
+} else {
+    print("No rectangle found")
+}

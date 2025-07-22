@@ -1,0 +1,14 @@
+/home/th3oth3rjak3/Development/Csharp/Sigil/Sigil/bin/Debug/net8.0/Sigil
+/home/th3oth3rjak3/Development/Csharp/Sigil/Sigil/bin/Debug/net8.0/Sigil.deps.json
+/home/th3oth3rjak3/Development/Csharp/Sigil/Sigil/bin/Debug/net8.0/Sigil.runtimeconfig.json
+/home/th3oth3rjak3/Development/Csharp/Sigil/Sigil/bin/Debug/net8.0/Sigil.dll
+/home/th3oth3rjak3/Development/Csharp/Sigil/Sigil/bin/Debug/net8.0/Sigil.pdb
+/home/th3oth3rjak3/Development/Csharp/Sigil/Sigil/obj/Debug/net8.0/Sigil.GeneratedMSBuildEditorConfig.editorconfig
+/home/th3oth3rjak3/Development/Csharp/Sigil/Sigil/obj/Debug/net8.0/Sigil.AssemblyInfoInputs.cache
+/home/th3oth3rjak3/Development/Csharp/Sigil/Sigil/obj/Debug/net8.0/Sigil.AssemblyInfo.cs
+/home/th3oth3rjak3/Development/Csharp/Sigil/Sigil/obj/Debug/net8.0/Sigil.csproj.CoreCompileInputs.cache
+/home/th3oth3rjak3/Development/Csharp/Sigil/Sigil/obj/Debug/net8.0/Sigil.dll
+/home/th3oth3rjak3/Development/Csharp/Sigil/Sigil/obj/Debug/net8.0/refint/Sigil.dll
+/home/th3oth3rjak3/Development/Csharp/Sigil/Sigil/obj/Debug/net8.0/Sigil.pdb
+/home/th3oth3rjak3/Development/Csharp/Sigil/Sigil/obj/Debug/net8.0/Sigil.genruntimeconfig.cache
+/home/th3oth3rjak3/Development/Csharp/Sigil/Sigil/obj/Debug/net8.0/ref/Sigil.dll

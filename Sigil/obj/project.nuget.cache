@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "dgSpecHash": "W7H9PlLw7OY=",
+  "success": true,
+  "projectFilePath": "/home/th3oth3rjak3/Development/Csharp/Sigil/Sigil/Sigil.csproj",
+  "expectedPackageFiles": [
+    "/home/th3oth3rjak3/.nuget/packages/commandlineparser/2.9.1/commandlineparser.2.9.1.nupkg.sha512",
+    "/home/th3oth3rjak3/.nuget/packages/csharp.made.functional/3.0.0/csharp.made.functional.3.0.0.nupkg.sha512",
+    "/home/th3oth3rjak3/.nuget/packages/microsoft.aspnetcore.app.ref/8.0.16/microsoft.aspnetcore.app.ref.8.0.16.nupkg.sha512",
+    "/home/th3oth3rjak3/.nuget/packages/microsoft.netcore.app.host.linux-x64/8.0.16/microsoft.netcore.app.host.linux-x64.8.0.16.nupkg.sha512",
+    "/home/th3oth3rjak3/.nuget/packages/microsoft.netcore.app.ref/8.0.16/microsoft.netcore.app.ref.8.0.16.nupkg.sha512"
+  ],
+  "logs": []
+}

@@ -1,0 +1,34 @@
+enum Result<T, E> {
+    Ok(T),
+    Err(E),
+}
+
+fn divide(a: Float, b: Float) -> Result<Float, String> {
+    if b == 0.0 {
+        Err("Division by zero")
+    } else {
+        Ok(a / b)
+    }
+}
+
+match divide(10.0, 2.0) {
+    Ok(result) => print($"Result: {result}"),
+    Err(error) => print($"Error: {error}")
+}
+
+let (value, err) = divide(10.0, 2.0)
+if err.is_some() |err| {
+    print(err)
+    return
+}
+
+fn complex_operation() -> Result<Float, String> {
+    divide(10.0, 2.0)
+        .and_then(|x| multiply(x, 3.0))
+        .map_err(|e| format("Operation failed: {}", e))
+}
+
+// Convert between styles as needed
+let result = divide(10.0, 2.0)
+let (value, err) = result.into_tuple()  // Convert Result to tuple
+let result2 = Result.from_tuple(value, err)  // Convert tuple to Result
