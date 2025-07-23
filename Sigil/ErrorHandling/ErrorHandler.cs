@@ -2,14 +2,35 @@ using Sigil.Common;
 
 namespace Sigil.ErrorHandling;
 
-public class ErrorHandler
+public class ErrorHandler(string sourceCode)
 {
-    private List<string> _errors = [];
+    private readonly string _sourceCode = sourceCode;
 
-    public bool HadError => _errors.Count > 0;
+    public List<string> Errors { get; set; } = [];
 
-    public void Report(string error, Position location)
+    public bool HadError => Errors.Count > 0;
+
+    public void Report(string error, Span location)
     {
-        _errors.Add($"[{location.Line}:{location.Column}] Error: {error}");
+        Errors.Add($"[{location.Start.Line}:{location.Start.Column}] Error: {error}");
+
+        var lineOfOffendingCode = string.Join(
+            "",
+            _sourceCode
+            .Skip(location.Start.LineOffset)
+            .TakeWhile(ch => ch != '\n')
+            .ToArray());
+
+        var lineNumber = location.Start.Line.ToString();
+        lineOfOffendingCode = $"{lineNumber} | {lineOfOffendingCode}";
+
+        // Handle zero length spans to fail gracefully.
+        var underlineLength = Math.Max(0, location.End.Column - location.Start.Column + 1);
+        var pointer = new string(' ', lineNumber.Length + 3 + location.Start.Offset - location.Start.LineOffset)
+                   + new string('^', underlineLength)
+                   + " <- Error Here";
+
+        Errors.Add(lineOfOffendingCode);
+        Errors.Add(pointer);
     }
 }

@@ -447,3 +447,10 @@ temp/
 
 ## Random lock files
 *.ods#
+
+
+TestResults/
+coveragereport/
+*.coverage
+*.cobertura.xml
+.vscode/settings.json
