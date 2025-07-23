@@ -1,379 +1,315 @@
 // Comprehensive Sigil Language Feature Demonstration
-
-// ===== MODULE DECLARATION =====
 module graphics::demo;
 
 // ===== MODULE IMPORTS =====
 use std::collections;
 use graphics::primitives as gfx;
 use math::geometry;
-use io::console as console;
+use io::console as Console;
+use std::sync::{channel, Sender, Receiver};
 
 // ===== INTERFACE DECLARATIONS =====
 interface Drawable {
-    draw() -> ();
-    area() -> Float;
+    Draw() -> ();
+    Area() -> Float;
 }
 
 interface Serializable[T] {
-    serialize() -> String;
-    deserialize(data: String) -> T;
+    Serialize() -> String;
+    Deserialize(data: String) -> T;
 }
 
-// ===== ENUM DECLARATIONS =====
+// ===== ENUM DECLARATIONS (Go-style visibility) =====
 enum Color {
     Red(),
-    Green(),
+    Green(), 
     Blue(),
     RGB(r: Int, g: Int, b: Int),
     HSV(Float, Float, Float)  // Unlabeled parameters
 }
 
-// ===== RESULT TYPE FOR ERROR HANDLING =====
+// Private enum (lowercase)
+enum processingState {
+    ready(),
+    processing(), 
+    done()
+}
+
+// ===== RESULT/OPTION TYPES FOR ERROR HANDLING =====
 enum Result[T, E] {
     Ok(T),
     Err(E)
-
-    fn is_ok() -> Bool {
+    
+    fn IsOk() -> Bool {  // Public method (uppercase)
         match this {
-            Result.Ok(_) => true,
-            Result.Err(_) => false,
+            Result::Ok(_) => true,
+            Result::Err(_) => false,
         }
     }
-
-    fn unwrap() -> T {
+    
+    fn unwrap() -> T {  // Private method (lowercase)
         match this {
-            Result.Ok(value) => value,
-            Result.Err(_) => {
-                // This would panic in a real implementation
-                return super;
-            },
+            Result::Ok(value) => value,
+            Result::Err(_) => panic("Called unwrap on an Err value"),
         }
     }
 }
+
 enum Option[T] {
     Some(T),
     None()
-
-    // Methods on enums
-    fn is_some() -> Bool {
+    
+    fn IsSome() -> Bool {  // Public method
         match this {
-            Option.Some(_) => true,
-            Option.None() => false,
-        }
-    }
-
-    fn unwrap() -> T {
-        match this {
-            Option.Some(value) => value,
-            Option.None() => {
-                // This would panic in a real implementation
-                return super;  // Just for demonstration
-            },
+            Option::Some(_) => true,
+            Option::None() => false,
         }
     }
 }
 
 // ===== CLASS DECLARATIONS =====
 class Shape : Drawable {
-    name: String;
-    color: Color;
-
+    Name: String;      // Public field (uppercase)
+    Color: Color;      // Public field
+    internalId: Int;   // Private field (lowercase)
+    
     new(name: String, color: Color) {
-        this.name = name;
-        this.color = color;
+        this.Name = name;
+        this.Color = color;
+        this.internalId = 0;
     }
-
-    // Interface method stubs - to be implemented by subclasses
-    draw() -> () {
-        // Default implementation or abstract
-    }
-
-    area() -> Float {
-        // Default implementation or abstract
-        return 0.0;
-    }
+    
+    // Public methods (uppercase)
+    Draw() -> () { /* Default implementation */ }
+    Area() -> Float { return 0.0; }
+    
+    // Private method (lowercase)
+    validate() -> Bool { return true; }
 }
 
 class Rectangle[T] : Shape, Serializable[Rectangle[T]] {
-    width: T;
-    height: T;
-    _internal_id: Int;  // Private field (underscore prefix)
-
+    Width: T;      // Public fields
+    Height: T;
+    
     new(name: String, color: Color, width: T, height: T) : super(name, color) {
-        this.width = width;
-        this.height = height;
-        this._internal_id = 0;
+        this.Width = width;
+        this.Height = height;
     }
-
-    // Method implementation
-    draw() -> () {
-        let msg: String = $"Drawing {this.name} rectangle";
-        console::println(msg);
+    
+    Draw() -> () {
+        Console::println($"Drawing {this.Name} rectangle");
     }
-
-    area() -> Float {
-        return this.width * this.height;
+    
+    Area() -> Float {
+        return this.Width * this.Height;
     }
-
-    // Private method (underscore prefix)
-    _validate() -> Bool {
-        return this.width > 0.0 && this.height > 0.0;
+    
+    Serialize() -> String {
+        return $"Rectangle({this.Width}, {this.Height})";
     }
-
-    // Interface method implementation
-    serialize() -> String {
-        return $"Rectangle({this.width}, {this.height})";
+    
+    Deserialize(data: String) -> Rectangle[T] {
+        return this;  // Simplified
     }
-
-    deserialize(data: String) -> Rectangle[T] {
-        // Simplified deserialization
-        return this;
-    }
-
-    // Static method
-    static create_square(size: T) -> Rectangle[T] {
-        return Rectangle.new("Square", Color.Blue(), size, size);
+    
+    static CreateSquare(size: T) -> Rectangle[T] {  // Public static method
+        return Rectangle::new("Square", Color::Blue(), size, size);
     }
 }
 
-class Circle : Shape {
-    radius: Float;
-
-    new(name: String, color: Color, radius: Float) : super(name, color) {
-        this.radius = radius;
+// Private helper class (lowercase)
+class shapeCache {
+    data: Map[String, Shape];
+    
+    new() {
+        this.data = Map::new();
     }
-
-    draw() -> () {
-        console::println($"Drawing {this.name} circle with radius {this.radius}");
-    }
-
-    area() -> Float {
-        return 3.14159 * this.radius * this.radius;
+    
+    optimize(shape: Shape) -> Shape {  // Private method
+        return shape;
     }
 }
 
 // ===== FUNCTION DECLARATIONS =====
-fn add[T](a: T, b: T) -> T {
+fn Add[T](a: T, b: T) -> T {  // Public function (uppercase)
     return a + b;
 }
 
-fn calculate_total_area(shapes: Array[Shape]) -> Float {
-    let total: Float = 0.0;
-
-    // Demonstrating for loop
-    for shape in shapes {
-        total = total + shape.area();
-    }
-
-    return total;
+fn calculateMetrics() -> Float {  // Private function (lowercase)
+    return 42.0;
 }
 
-fn safe_divide(a: Float, b: Float) -> Result[Float, String] {
-    if b == 0.0 {
-        return Result.Err("Division by zero");
+// ===== TUPLE RETURN FUNCTIONS =====
+fn DivideWithRemainder(a: Int, b: Int) -> (Int, Int) {  // Public
+    return (a / b, a % b);
+}
+
+fn GetUserInfo(id: Int) -> (String, Int, Bool) {  // Public
+    if id == 1 {
+        return ("Alice", 30, true);
     } else {
-        return Result.Ok(a / b);
+        return ("Unknown", 0, false);
     }
 }
 
-fn demonstrate_arrays_and_tuples() -> () {
-    // Array literals
-    let numbers: Array[Int] = [1, 2, 3, 4, 5];
-    let colors: Array[Color] = [Color.Red(), Color.Green(), Color.Blue()];
-
-    // Tuple literals
-    let point: (Float, Float) = (10.0, 20.0);
-    let person: (String, Int, Bool) = ("Alice", 30, true);
-
-    // Array indexing
-    let first_number: Int = numbers[0];
-    let last_color: Color = colors[2];
-
-    // Tuple destructuring in let
-    let (x, y): (Float, Float) = point;
-    let (name, age, is_active): (String, Int, Bool) = person;
-
-    console::println($"Point: ({x}, {y})");
-    console::println($"Person: {name}, age {age}, active: {is_active}");
-}
-
-fn demonstrate_control_flow() -> () {
-    let numbers: Array[Int] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-
-    // If-else statements
-    for num in numbers {
-        if num % 2 == 0 {
-            console::println($"{num} is even");
-        } else if num % 3 == 0 {
-            console::println($"{num} is divisible by 3");
-        } else {
-            console::println($"{num} is odd");
-        }
-    }
-
-    // While loop
-    let i: Int = 0;
-    while i < 5 {
-        console::println($"Count: {i}");
-        i = i + 1;
+fn parseIntSafe(s: String) -> (Int, Bool) {  // Private
+    if s == "42" {
+        return (42, true);
+    } else {
+        return (0, false);
     }
 }
 
-fn demonstrate_pattern_matching_extended() -> () {
-    let data: (Int, Array[String]) = (42, ["hello", "world"]);
-
-    // Tuple pattern matching
-    match data {
-        (0, _) => console::println("First element is zero"),
-        (n, arr) => {
-            console::println($"Number: {n}");
-            console::println($"Array length: {arr.length()}");
-        },
-    }
-
-    // Array pattern matching
-    let coords: Array[Int] = [1, 2, 3];
-    match coords {
-        [] => console::println("Empty array"),
-        [x] => console::println($"Single element: {x}"),
-        [x, y] => console::println($"Two elements: {x}, {y}"),
-        [x, y, z] => console::println($"Three elements: {x}, {y}, {z}"),
-        _ => console::println("More than three elements"),
-    }
-}
-
-fn demonstrate_pattern_matching(opt: Option[Int]) -> String {
-    return match opt {
-        Option.Some(value) => $"Got value: {value}",
-        Option.None() => "No value",
-    };
-}
-
-fn demonstrate_lambdas() -> () {
-    // Lambda expressions
-    let square: |Int| -> Int = |x: Int| x * x;
-    let add_one: |Int| -> Int = |x: Int| x + 1;
-    let no_params: || -> String = || "Hello, World!";
-
-    let result: Int = square(5);
-    let incremented: Int = add_one(result);
-    let greeting: String = no_params();
-
-    console::println($"Square of 5: {result}");
-    console::println($"Incremented: {incremented}");
-    console::println(greeting);
-}
-
-// ===== MAIN PROGRAM DEMONSTRATION =====
-fn main() -> () {
-    // ===== VARIABLE DECLARATIONS =====
+// ===== MAIN PROGRAM =====
+fn Main() -> () {
+    Console::println("=== Sigil Language Demo ===");
+    
+    // ===== BASIC VARIABLES =====
     let name: String = "Sigil Demo";
     let version: Float = 1.0;
-    let is_demo: Bool = true;
-    let unit_value: () = ();
-
-    // ===== STRING INTERPOLATION =====
-    console::println($"Welcome to {name} version {version}!");
-
-    // ===== ENUM USAGE =====
-    let red: Color = Color.Red();
-    let custom_color: Color = Color.RGB(r: 255, g: 128, b: 64);
-    let hsv_color: Color = Color.HSV(0.5, 0.8, 1.0);
-
+    let isDemo: Bool = true;
+    
+    // String interpolation
+    Console::println($"Welcome to {name} version {version}!");
+    
+    // ===== ENUM USAGE (Go-style visibility) =====
+    let red: Color = Color::Red();                          // Public enum
+    let customColor: Color = Color::RGB(r: 255, g: 128, b: 64);
+    let state: processingState = processingState::ready();  // Private enum
+    
     // ===== CLASS INSTANTIATION =====
-    let rect: Rectangle[Float] = Rectangle.new("MyRect", red, 10.0, 5.0);
-    let circle: Circle = Circle.new("MyCircle", custom_color, 3.0);
-
-    // ===== STATIC METHOD CALLS =====
-    let square: Rectangle[Float] = Rectangle::create_square(7.0);
-
-    // ===== METHOD CALLS =====
-    rect.draw();
-    circle.draw();
-
-    let rect_area: Float = rect.area();
-    let circle_area: Float = circle.area();
-
-    console::println($"Rectangle area: {rect_area}");
-    console::println($"Circle area: {circle_area}");
-
-    // ===== GENERIC FUNCTION CALLS =====
-    let sum_int: Int = add[Int](5, 3);
-    let sum_float: Float = add[Float](2.5, 1.5);
-
-    // ===== PATTERN MATCHING =====
-    let some_value: Option[Int] = Option.Some(42);
-    let no_value: Option[Int] = Option.None();
-
-    let message1: String = demonstrate_pattern_matching(some_value);
-    let message2: String = demonstrate_pattern_matching(no_value);
-
-    console::println(message1);
-    console::println(message2);
-
-    // ===== ENUM METHODS =====
-    let has_value: Bool = some_value.is_some();
-    let is_empty: Bool = no_value.is_some();
-
-    // ===== COMPLEX PATTERN MATCHING =====
-    match custom_color {
-        Color.Red() => console::println("It's red!"),
-        Color.Green() => console::println("It's green!"),
-        Color.Blue() => console::println("It's blue!"),
-        Color.RGB(r, g, b) => console::println($"RGB color: ({r}, {g}, {b})"),
-        Color.HSV(h, s, v) => console::println($"HSV color: ({h}, {s}, {v})"),
-    }
-
-    // ===== ASSIGNMENT STATEMENTS =====
-    rect.width = 15.0;
-    rect.height = 8.0;
-
-    // ===== LAMBDA DEMONSTRATION =====
-    demonstrate_lambdas();
-
-    // ===== ARRAYS AND TUPLES =====
-    demonstrate_arrays_and_tuples();
-
-    // ===== CONTROL FLOW =====
-    demonstrate_control_flow();
-
-    // ===== EXTENDED PATTERN MATCHING =====
-    demonstrate_pattern_matching_extended();
-
-    // ===== RESULT TYPE ERROR HANDLING =====
-    let division_result: Result[Float, String] = safe_divide(10.0, 2.0);
-    match division_result {
-        Result.Ok(value) => console::println($"Division result: {value}"),
-        Result.Err(error) => console::println($"Error: {error}"),
-    }
-
-    let error_result: Result[Float, String] = safe_divide(10.0, 0.0);
-    if error_result.is_ok() {
-        console::println("This won't print");
+    let rect: Rectangle[Float] = Rectangle::new("MyRect", red, 10.0, 5.0);
+    let square: Rectangle[Float] = Rectangle::CreateSquare(7.0);  // Static method
+    let cache: shapeCache = shapeCache::new();  // Private class
+    
+    // ===== METHOD CALLS (visibility clear at usage) =====
+    rect.Draw();                    // Public method
+    let area: Float = rect.Area();  // Public method
+    let isValid: Bool = rect.validate();  // Private method (lowercase)
+    
+    Console::println($"Rectangle area: {area}");
+    
+    // ===== TUPLE DESTRUCTURING =====
+    // Let destructuring
+    let (quotient, remainder): (Int, Int) = DivideWithRemainder(17, 5);
+    Console::println($"17 / 5 = {quotient} remainder {remainder}");
+    
+    // Assignment destructuring
+    let q: Int = 0;
+    let r: Int = 0;
+    (q, r) = DivideWithRemainder(23, 7);
+    Console::println($"23 / 7 = {q} remainder {r}");
+    
+    // Multiple return values
+    let (userName, userAge, userActive): (String, Int, Bool) = GetUserInfo(1);
+    Console::println($"User: {userName}, age {userAge}, active: {userActive}");
+    
+    // ===== GO-STYLE ERROR HANDLING =====
+    let (value, ok): (Int, Bool) = parseIntSafe("42");
+    if ok {
+        Console::println($"Successfully parsed: {value}");
     } else {
-        console::println("Division by zero handled gracefully");
+        Console::println("Parse failed");
     }
-
-    // ===== LOGICAL OPERATIONS =====
-    let complex_condition: Bool = is_demo && (rect_area > 50.0 || circle_area < 30.0);
-
-    if complex_condition {
-        console::println("Complex condition is true!");
+    
+    // ===== RESULT TYPE ERROR HANDLING =====
+    let divResult: Result[Float, String] = SafeDivide(10.0, 2.0);
+    match divResult {
+        Result::Ok(val) => Console::println($"Division result: {val}"),
+        Result::Err(err) => Console::println($"Error: {err}"),
     }
-
-    // ===== ARITHMETIC OPERATIONS =====
-    let calculation: Float = (rect_area + circle_area) * 2.0 - 10.0 / 2.0;
+    
+    // ===== PATTERN MATCHING =====
+    let someValue: Option[Int] = Option::Some(42);
+    let message: String = match someValue {
+        Option::Some(val) => $"Got value: {val}",
+        Option::None() => "No value",
+    };
+    Console::println(message);
+    
+    // Enum pattern matching
+    match customColor {
+        Color::Red() => Console::println("It's red!"),
+        Color::RGB(r, g, b) => Console::println($"RGB color: ({r}, {g}, {b})"),
+        _ => Console::println("Other color"),
+    }
+    
+    // ===== ARRAYS AND COLLECTIONS =====
+    let numbers: Array[Int] = [1, 2, 3, 4, 5];
+    let colors: Array[Color] = [Color::Red(), Color::Green(), Color::Blue()];
+    
+    // Array indexing and tuple literals
+    let firstNum: Int = numbers[0];
+    let point: (Float, Float) = (10.0, 20.0);
+    let (x, y): (Float, Float) = point;
+    Console::println($"Point: ({x}, {y})");
+    
+    // ===== CONTROL FLOW =====
+    // For loop
+    for num in numbers {
+        if num % 2 == 0 {
+            Console::println($"{num} is even");
+        } else {
+            Console::println($"{num} is odd");
+        }
+    }
+    
+    // While loop
+    let i: Int = 0;
+    while i < 3 {
+        Console::println($"Count: {i}");
+        i = i + 1;
+    }
+    
+    // ===== LAMBDA EXPRESSIONS =====
+    let square: |Int| -> Int = |x: Int| x * x;
+    let doubled: Int = square(5);
+    Console::println($"5 squared = {doubled}");
+    
+    // ===== CONCURRENCY (Go-style) =====
+    let (tx, rx) = channel[String](3);
+    
+    // Producer goroutine
+    spawn {
+        tx.send("Hello");
+        tx.send("from");
+        tx.send("goroutine!");
+        tx.close();
+    };
+    
+    // Consumer goroutine  
+    spawn {
+        while true {
+            match rx.try_recv() {
+                Option::Some(msg) => Console::println($"Received: {msg}"),
+                Option::None() => break,
+            }
+        }
+    };
+    
+    // ===== GENERIC FUNCTIONS =====
+    let sumInt: Int = Add[Int](5, 3);
+    let sumFloat: Float = Add[Float](2.5, 1.5);
+    Console::println($"Generic addition: {sumInt}, {sumFloat}");
+    
+    // ===== ARITHMETIC AND LOGICAL OPERATIONS =====
+    let calculation: Float = (area + 20.0) * 2.0 - 10.0 / 2.0;
     let remainder: Int = 17 % 5;
+    let isGreater: Bool = area > 50.0;
+    let complexCondition: Bool = isDemo && (area > 30.0 || remainder == 2);
+    
+    if complexCondition {
+        Console::println("Complex condition satisfied!");
+    }
+    
+    Console::println("Demo completed successfully!");
+}
 
-    // ===== COMPARISON OPERATIONS =====
-    let is_greater: Bool = rect_area > circle_area;
-    let is_equal: Bool = sum_int == 8;
-    let is_not_equal: Bool = version != 2.0;
-
-    // ===== UNARY OPERATIONS =====
-    let negated: Float = -calculation;
-    let inverted: Bool = !is_greater;
-
-    console::println("Demo completed successfully!");
+// Helper function for demo
+fn SafeDivide(a: Float, b: Float) -> Result[Float, String] {
+    if b == 0.0 {
+        return Result::Err("Division by zero");
+    } else {
+        return Result::Ok(a / b);
+    }
 }

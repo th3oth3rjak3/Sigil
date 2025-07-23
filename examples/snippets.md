@@ -752,3 +752,34 @@ graph LR
     C --> D[Interpreter]
     C --> E[LLVM]
 ```
+
+## Concurrency Example
+
+```sigil
+// Version 1.0 - simple implementation
+fn process_batch(items: Array[Item]) -> Array[Result] {
+    let results: Array[Result] = [];
+    for item in items {
+        results.push(process_item(item));
+    }
+    return results;
+}
+
+// Version 2.0 - concurrent implementation (no API change!)
+fn process_batch(items: Array[Item]) -> Array[Result] {
+    let (tx, rx) = channel[Result]();
+    
+    for item in items {
+        let sender = tx.clone();
+        spawn {
+            sender.send(process_item(item));
+        };
+    }
+    
+    let results: Array[Result] = [];
+    for i in 0..items.length() {
+        results.push(rx.recv().unwrap());
+    }
+    return results;
+}
+```
