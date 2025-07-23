@@ -1,0 +1,379 @@
+// Comprehensive Sigil Language Feature Demonstration
+
+// ===== MODULE DECLARATION =====
+module graphics::demo;
+
+// ===== MODULE IMPORTS =====
+use std::collections;
+use graphics::primitives as gfx;
+use math::geometry;
+use io::console as console;
+
+// ===== INTERFACE DECLARATIONS =====
+interface Drawable {
+    draw() -> ();
+    area() -> Float;
+}
+
+interface Serializable[T] {
+    serialize() -> String;
+    deserialize(data: String) -> T;
+}
+
+// ===== ENUM DECLARATIONS =====
+enum Color {
+    Red(),
+    Green(),
+    Blue(),
+    RGB(r: Int, g: Int, b: Int),
+    HSV(Float, Float, Float)  // Unlabeled parameters
+}
+
+// ===== RESULT TYPE FOR ERROR HANDLING =====
+enum Result[T, E] {
+    Ok(T),
+    Err(E)
+
+    fn is_ok() -> Bool {
+        match this {
+            Result.Ok(_) => true,
+            Result.Err(_) => false,
+        }
+    }
+
+    fn unwrap() -> T {
+        match this {
+            Result.Ok(value) => value,
+            Result.Err(_) => {
+                // This would panic in a real implementation
+                return super;
+            },
+        }
+    }
+}
+enum Option[T] {
+    Some(T),
+    None()
+
+    // Methods on enums
+    fn is_some() -> Bool {
+        match this {
+            Option.Some(_) => true,
+            Option.None() => false,
+        }
+    }
+
+    fn unwrap() -> T {
+        match this {
+            Option.Some(value) => value,
+            Option.None() => {
+                // This would panic in a real implementation
+                return super;  // Just for demonstration
+            },
+        }
+    }
+}
+
+// ===== CLASS DECLARATIONS =====
+class Shape : Drawable {
+    name: String;
+    color: Color;
+
+    new(name: String, color: Color) {
+        this.name = name;
+        this.color = color;
+    }
+
+    // Interface method stubs - to be implemented by subclasses
+    draw() -> () {
+        // Default implementation or abstract
+    }
+
+    area() -> Float {
+        // Default implementation or abstract
+        return 0.0;
+    }
+}
+
+class Rectangle[T] : Shape, Serializable[Rectangle[T]] {
+    width: T;
+    height: T;
+    _internal_id: Int;  // Private field (underscore prefix)
+
+    new(name: String, color: Color, width: T, height: T) : super(name, color) {
+        this.width = width;
+        this.height = height;
+        this._internal_id = 0;
+    }
+
+    // Method implementation
+    draw() -> () {
+        let msg: String = $"Drawing {this.name} rectangle";
+        console::println(msg);
+    }
+
+    area() -> Float {
+        return this.width * this.height;
+    }
+
+    // Private method (underscore prefix)
+    _validate() -> Bool {
+        return this.width > 0.0 && this.height > 0.0;
+    }
+
+    // Interface method implementation
+    serialize() -> String {
+        return $"Rectangle({this.width}, {this.height})";
+    }
+
+    deserialize(data: String) -> Rectangle[T] {
+        // Simplified deserialization
+        return this;
+    }
+
+    // Static method
+    static create_square(size: T) -> Rectangle[T] {
+        return Rectangle.new("Square", Color.Blue(), size, size);
+    }
+}
+
+class Circle : Shape {
+    radius: Float;
+
+    new(name: String, color: Color, radius: Float) : super(name, color) {
+        this.radius = radius;
+    }
+
+    draw() -> () {
+        console::println($"Drawing {this.name} circle with radius {this.radius}");
+    }
+
+    area() -> Float {
+        return 3.14159 * this.radius * this.radius;
+    }
+}
+
+// ===== FUNCTION DECLARATIONS =====
+fn add[T](a: T, b: T) -> T {
+    return a + b;
+}
+
+fn calculate_total_area(shapes: Array[Shape]) -> Float {
+    let total: Float = 0.0;
+
+    // Demonstrating for loop
+    for shape in shapes {
+        total = total + shape.area();
+    }
+
+    return total;
+}
+
+fn safe_divide(a: Float, b: Float) -> Result[Float, String] {
+    if b == 0.0 {
+        return Result.Err("Division by zero");
+    } else {
+        return Result.Ok(a / b);
+    }
+}
+
+fn demonstrate_arrays_and_tuples() -> () {
+    // Array literals
+    let numbers: Array[Int] = [1, 2, 3, 4, 5];
+    let colors: Array[Color] = [Color.Red(), Color.Green(), Color.Blue()];
+
+    // Tuple literals
+    let point: (Float, Float) = (10.0, 20.0);
+    let person: (String, Int, Bool) = ("Alice", 30, true);
+
+    // Array indexing
+    let first_number: Int = numbers[0];
+    let last_color: Color = colors[2];
+
+    // Tuple destructuring in let
+    let (x, y): (Float, Float) = point;
+    let (name, age, is_active): (String, Int, Bool) = person;
+
+    console::println($"Point: ({x}, {y})");
+    console::println($"Person: {name}, age {age}, active: {is_active}");
+}
+
+fn demonstrate_control_flow() -> () {
+    let numbers: Array[Int] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+    // If-else statements
+    for num in numbers {
+        if num % 2 == 0 {
+            console::println($"{num} is even");
+        } else if num % 3 == 0 {
+            console::println($"{num} is divisible by 3");
+        } else {
+            console::println($"{num} is odd");
+        }
+    }
+
+    // While loop
+    let i: Int = 0;
+    while i < 5 {
+        console::println($"Count: {i}");
+        i = i + 1;
+    }
+}
+
+fn demonstrate_pattern_matching_extended() -> () {
+    let data: (Int, Array[String]) = (42, ["hello", "world"]);
+
+    // Tuple pattern matching
+    match data {
+        (0, _) => console::println("First element is zero"),
+        (n, arr) => {
+            console::println($"Number: {n}");
+            console::println($"Array length: {arr.length()}");
+        },
+    }
+
+    // Array pattern matching
+    let coords: Array[Int] = [1, 2, 3];
+    match coords {
+        [] => console::println("Empty array"),
+        [x] => console::println($"Single element: {x}"),
+        [x, y] => console::println($"Two elements: {x}, {y}"),
+        [x, y, z] => console::println($"Three elements: {x}, {y}, {z}"),
+        _ => console::println("More than three elements"),
+    }
+}
+
+fn demonstrate_pattern_matching(opt: Option[Int]) -> String {
+    return match opt {
+        Option.Some(value) => $"Got value: {value}",
+        Option.None() => "No value",
+    };
+}
+
+fn demonstrate_lambdas() -> () {
+    // Lambda expressions
+    let square: |Int| -> Int = |x: Int| x * x;
+    let add_one: |Int| -> Int = |x: Int| x + 1;
+    let no_params: || -> String = || "Hello, World!";
+
+    let result: Int = square(5);
+    let incremented: Int = add_one(result);
+    let greeting: String = no_params();
+
+    console::println($"Square of 5: {result}");
+    console::println($"Incremented: {incremented}");
+    console::println(greeting);
+}
+
+// ===== MAIN PROGRAM DEMONSTRATION =====
+fn main() -> () {
+    // ===== VARIABLE DECLARATIONS =====
+    let name: String = "Sigil Demo";
+    let version: Float = 1.0;
+    let is_demo: Bool = true;
+    let unit_value: () = ();
+
+    // ===== STRING INTERPOLATION =====
+    console::println($"Welcome to {name} version {version}!");
+
+    // ===== ENUM USAGE =====
+    let red: Color = Color.Red();
+    let custom_color: Color = Color.RGB(r: 255, g: 128, b: 64);
+    let hsv_color: Color = Color.HSV(0.5, 0.8, 1.0);
+
+    // ===== CLASS INSTANTIATION =====
+    let rect: Rectangle[Float] = Rectangle.new("MyRect", red, 10.0, 5.0);
+    let circle: Circle = Circle.new("MyCircle", custom_color, 3.0);
+
+    // ===== STATIC METHOD CALLS =====
+    let square: Rectangle[Float] = Rectangle::create_square(7.0);
+
+    // ===== METHOD CALLS =====
+    rect.draw();
+    circle.draw();
+
+    let rect_area: Float = rect.area();
+    let circle_area: Float = circle.area();
+
+    console::println($"Rectangle area: {rect_area}");
+    console::println($"Circle area: {circle_area}");
+
+    // ===== GENERIC FUNCTION CALLS =====
+    let sum_int: Int = add[Int](5, 3);
+    let sum_float: Float = add[Float](2.5, 1.5);
+
+    // ===== PATTERN MATCHING =====
+    let some_value: Option[Int] = Option.Some(42);
+    let no_value: Option[Int] = Option.None();
+
+    let message1: String = demonstrate_pattern_matching(some_value);
+    let message2: String = demonstrate_pattern_matching(no_value);
+
+    console::println(message1);
+    console::println(message2);
+
+    // ===== ENUM METHODS =====
+    let has_value: Bool = some_value.is_some();
+    let is_empty: Bool = no_value.is_some();
+
+    // ===== COMPLEX PATTERN MATCHING =====
+    match custom_color {
+        Color.Red() => console::println("It's red!"),
+        Color.Green() => console::println("It's green!"),
+        Color.Blue() => console::println("It's blue!"),
+        Color.RGB(r, g, b) => console::println($"RGB color: ({r}, {g}, {b})"),
+        Color.HSV(h, s, v) => console::println($"HSV color: ({h}, {s}, {v})"),
+    }
+
+    // ===== ASSIGNMENT STATEMENTS =====
+    rect.width = 15.0;
+    rect.height = 8.0;
+
+    // ===== LAMBDA DEMONSTRATION =====
+    demonstrate_lambdas();
+
+    // ===== ARRAYS AND TUPLES =====
+    demonstrate_arrays_and_tuples();
+
+    // ===== CONTROL FLOW =====
+    demonstrate_control_flow();
+
+    // ===== EXTENDED PATTERN MATCHING =====
+    demonstrate_pattern_matching_extended();
+
+    // ===== RESULT TYPE ERROR HANDLING =====
+    let division_result: Result[Float, String] = safe_divide(10.0, 2.0);
+    match division_result {
+        Result.Ok(value) => console::println($"Division result: {value}"),
+        Result.Err(error) => console::println($"Error: {error}"),
+    }
+
+    let error_result: Result[Float, String] = safe_divide(10.0, 0.0);
+    if error_result.is_ok() {
+        console::println("This won't print");
+    } else {
+        console::println("Division by zero handled gracefully");
+    }
+
+    // ===== LOGICAL OPERATIONS =====
+    let complex_condition: Bool = is_demo && (rect_area > 50.0 || circle_area < 30.0);
+
+    if complex_condition {
+        console::println("Complex condition is true!");
+    }
+
+    // ===== ARITHMETIC OPERATIONS =====
+    let calculation: Float = (rect_area + circle_area) * 2.0 - 10.0 / 2.0;
+    let remainder: Int = 17 % 5;
+
+    // ===== COMPARISON OPERATIONS =====
+    let is_greater: Bool = rect_area > circle_area;
+    let is_equal: Bool = sum_int == 8;
+    let is_not_equal: Bool = version != 2.0;
+
+    // ===== UNARY OPERATIONS =====
+    let negated: Float = -calculation;
+    let inverted: Bool = !is_greater;
+
+    console::println("Demo completed successfully!");
+}
