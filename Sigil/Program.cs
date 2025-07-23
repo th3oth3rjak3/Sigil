@@ -1,4 +1,5 @@
-﻿using CommandLine;
+﻿using System.Diagnostics.CodeAnalysis;
+using CommandLine;
 using Sigil.ModuleImporting;
 
 namespace Sigil;
@@ -6,6 +7,7 @@ namespace Sigil;
 
 public class Stmt { }
 
+[ExcludeFromCodeCoverage]
 class Program
 {
     [Verb("run", HelpText = "Run in debug mode.")]

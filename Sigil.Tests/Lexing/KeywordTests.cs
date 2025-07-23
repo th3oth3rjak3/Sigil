@@ -1,7 +1,9 @@
+using System.Diagnostics.CodeAnalysis;
 using Sigil.Lexing;
 
 namespace Sigil.Tests.Lexing;
 
+[ExcludeFromCodeCoverage]
 public class KeywordsTests
 {
     [Theory]

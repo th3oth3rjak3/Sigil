@@ -1,7 +1,9 @@
+using System.Diagnostics.CodeAnalysis;
 using Sigil.Common;
 
 namespace Sigil.Tests.Common;
 
+[ExcludeFromCodeCoverage]
 public class PositionTests
 {
     [Fact]
@@ -53,5 +55,13 @@ public class PositionTests
     {
         // Arrange, Act & Assert
         Assert.Throws<ArgumentException>(() => new Position(line, column, offset, 0));
+    }
+
+    [Theory]
+    [InlineData(1, 1, 0, -1)]
+    [InlineData(1, 1, 0, 1)]
+    public void Position_InvalidLineOffset_ThrowsExeception(int line, int column, int offset, int lineOffset)
+    {
+        Assert.Throws<ArgumentException>(() => new Position(line, column, offset, lineOffset));
     }
 }

@@ -1,7 +1,9 @@
-﻿using Sigil.Common;
+﻿using System.Diagnostics.CodeAnalysis;
+using Sigil.Common;
 
 namespace Sigil.Tests.Common;
 
+[ExcludeFromCodeCoverage]
 public class SpanTests
 {
     [Fact]
@@ -146,10 +148,7 @@ public class SpanTests
         // Assert
         Assert.Equal(span, merged);
     }
-}
 
-public class SpannedTests
-{
     [Fact]
     public void Spanned_StoresNodeAndSpan()
     {

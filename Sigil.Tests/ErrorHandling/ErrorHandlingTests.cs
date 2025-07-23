@@ -1,8 +1,10 @@
+using System.Diagnostics.CodeAnalysis;
 using Sigil.Common;
 using Sigil.ErrorHandling;
 
 namespace Sigil.Tests.ErrorHandling;
 
+[ExcludeFromCodeCoverage]
 public class ErrorHandlerTests
 {
     private const string SampleCode = "let x = 42;\nlet y = 'hello';\nif x > 10 {\n    print(y);\n}";
