@@ -747,11 +747,109 @@ public ref struct TokenStream
 
 ```mermaid
 graph LR
-    A[Source] --> B[Untyped AST]
-    B --> C[Typed AST]
-    C --> D[Interpreter]
-    C --> E[LLVM]
+    A[Source Code] --> B[Lexer]
+    B --> C[Tokens]
+    C --> D[Parser] 
+    D --> E[Untyped AST]
+    
+    E --> F[Symbol Table Builder]
+    F --> G[Symbol Tables]
+    
+    G --> H[Name Resolver]
+    E --> H
+    H --> I[Resolved AST]
+    
+    I --> J[Visibility Checker] 
+    J --> K[Access-Validated AST]
+    
+    K --> L[Type Checker]
+    L --> M[Typed AST]
+    
+    M --> N[Late Semantic Analyzer]
+    N --> O[Fully Analyzed AST]
+    
+    O --> P[Interpreter]
+    O --> Q[LLVM IR Generator]
+    Q --> R[LLVM IR]
+    
+    subgraph "Lexical Analysis"
+        B
+        C
+    end
+    
+    subgraph "Syntactic Analysis" 
+        D
+        E
+    end
+    
+    subgraph "Early Semantic Analysis"
+        F
+        G
+        H
+        I
+        J
+        K
+    end
+    
+    subgraph "Type Analysis"
+        L
+        M
+    end
+    
+    subgraph "Late Semantic Analysis"
+        N
+        O
+    end
+    
+    subgraph "Code Generation"
+        P
+        Q
+        R
+    end
+    
+    style F fill:#e1f5fe
+    style H fill:#e8f5e8
+    style J fill:#fff3e0
+    style L fill:#fce4ec
+    style N fill:#f3e5f5
 ```
+
+
+## Flow
+
+```txt
+Early Semantic Analysis Phase:
+Symbol Table Builder
+Collect all declarations (classes, functions, enums, etc.)
+Build scope hierarchies
+Handle imports/exports
+Create symbol entries (but don't resolve references yet)
+Name Resolver
+Resolve identifier references to their declarations
+Handle qualified names (Rectangle::new, console::println)
+Resolve generic type parameters
+Build reference links in AST
+Visibility Checker
+Check Go-style capitalization rules
+Validate cross-module access permissions
+Ensure private symbols aren't accessed externally
+Validate export consistency
+Type Analysis Phase:
+Type Checker
+Infer types for expressions
+Check type compatibility in assignments
+Validate generic instantiations
+Check interface implementations
+Validate pattern match exhaustiveness
+Late Semantic Analysis Phase:
+Late Semantic Analyzer
+Unreachable code detection
+Unused variable warnings
+Definite assignment analysis
+Constant folding
+Optimization-related analysis
+```
+
 
 ## Concurrency Example
 
@@ -781,5 +879,260 @@ fn process_batch(items: Array[Item]) -> Array[Result] {
         results.push(rx.recv().unwrap());
     }
     return results;
+}
+```
+
+## Error Handler Potential Future Case
+
+```csharp
+using Sigil.Common;
+namespace Sigil.ErrorHandling;
+
+public enum ErrorSeverity 
+{
+    Error,
+    Warning,
+    Info
+}
+
+public enum ErrorPhase
+{
+    Lexing,
+    Parsing, 
+    NameResolution,
+    VisibilityCheck,
+    TypeCheck,
+    SemanticAnalysis
+}
+
+public class ErrorHandler(string sourceCode)
+{
+    private readonly string _sourceCode = sourceCode;
+    public List<CompilerError> Errors { get; set; } = [];
+    public bool HadError => Errors.Any(e => e.Severity == ErrorSeverity.Error);
+    public bool HadWarning => Errors.Any(e => e.Severity == ErrorSeverity.Warning);
+
+    // Your existing general method (keep it!)
+    public void Report(string error, Span location, ErrorSeverity severity = ErrorSeverity.Error)
+    {
+        var compilerError = new CompilerError
+        {
+            Message = error,
+            Location = location,
+            Severity = severity,
+            Phase = ErrorPhase.SemanticAnalysis, // Default
+            SourceLines = FormatSourceContext(location)
+        };
+        Errors.Add(compilerError);
+    }
+
+    // ===== LEXING ERRORS =====
+    public void ReportUnterminatedString(Span location)
+    {
+        ReportError("Unterminated string literal", location, ErrorPhase.Lexing, 
+            "String literals must be closed with a quote");
+    }
+
+    public void ReportInvalidCharacter(char ch, Span location)
+    {
+        ReportError($"Invalid character '{ch}'", location, ErrorPhase.Lexing);
+    }
+
+    // ===== PARSING ERRORS =====
+    public void ReportExpectedToken(string expected, string actual, Span location)
+    {
+        ReportError($"Expected '{expected}', found '{actual}'", location, ErrorPhase.Parsing);
+    }
+
+    public void ReportUnexpectedEndOfFile(Span location)
+    {
+        ReportError("Unexpected end of file", location, ErrorPhase.Parsing);
+    }
+
+    // ===== NAME RESOLUTION ERRORS =====
+    public void ReportUndefinedSymbol(string symbolName, Span location)
+    {
+        ReportError($"Undefined symbol '{symbolName}'", location, ErrorPhase.NameResolution,
+            "Check that the symbol is declared and imported if needed");
+    }
+
+    public void ReportDuplicateDefinition(string symbolName, Span location, Span previousLocation)
+    {
+        ReportError($"Duplicate definition of '{symbolName}'", location, ErrorPhase.NameResolution,
+            $"Previously defined at line {previousLocation.Start.Line}");
+    }
+
+    public void ReportCircularDependency(List<string> cycle, Span location)
+    {
+        var cycleStr = string.Join(" -> ", cycle);
+        ReportError($"Circular dependency detected: {cycleStr}", location, ErrorPhase.NameResolution);
+    }
+
+    // ===== VISIBILITY ERRORS =====
+    public void ReportPrivateSymbolAccess(string symbolName, string moduleName, Span location)
+    {
+        ReportError($"Cannot access private symbol '{symbolName}' from module '{moduleName}'", 
+            location, ErrorPhase.VisibilityCheck,
+            "Only symbols starting with uppercase letters are exported");
+    }
+
+    public void ReportInconsistentVisibility(string symbolName, Span location)
+    {
+        ReportError($"Symbol '{symbolName}' has inconsistent visibility", 
+            location, ErrorPhase.VisibilityCheck,
+            "Public symbols cannot contain private types in their signature");
+    }
+
+    // ===== TYPE CHECKING ERRORS =====
+    public void ReportTypeMismatch(string expected, string actual, Span location)
+    {
+        ReportError($"Type mismatch: expected '{expected}', found '{actual}'", 
+            location, ErrorPhase.TypeCheck);
+    }
+
+    public void ReportMissingInterfaceImplementation(string className, string interfaceName, 
+        string missingMethod, Span location)
+    {
+        ReportError($"Class '{className}' does not implement method '{missingMethod}' " +
+                   $"required by interface '{interfaceName}'", location, ErrorPhase.TypeCheck);
+    }
+
+    public void ReportGenericConstraintViolation(string typeName, string constraint, Span location)
+    {
+        ReportError($"Type '{typeName}' does not satisfy constraint '{constraint}'", 
+            location, ErrorPhase.TypeCheck);
+    }
+
+    public void ReportIncompatibleTypes(string leftType, string rightType, string operation, Span location)
+    {
+        ReportError($"Cannot apply operation '{operation}' to types '{leftType}' and '{rightType}'", 
+            location, ErrorPhase.TypeCheck);
+    }
+
+    // ===== PATTERN MATCHING ERRORS =====
+    public void ReportNonExhaustivePatterns(List<string> missingPatterns, Span location)
+    {
+        var missing = string.Join(", ", missingPatterns);
+        ReportError($"Non-exhaustive pattern match. Missing: {missing}", 
+            location, ErrorPhase.TypeCheck);
+    }
+
+    public void ReportUnreachablePattern(Span location)
+    {
+        ReportWarning("Unreachable pattern", location, ErrorPhase.TypeCheck);
+    }
+
+    // ===== SEMANTIC ANALYSIS ERRORS =====
+    public void ReportUnreachableCode(Span location)
+    {
+        ReportWarning("Unreachable code", location, ErrorPhase.SemanticAnalysis);
+    }
+
+    public void ReportUnusedVariable(string varName, Span location)
+    {
+        ReportWarning($"Unused variable '{varName}'", location, ErrorPhase.SemanticAnalysis,
+            "Consider prefixing with '_' if intentionally unused");
+    }
+
+    public void ReportUninitializedVariable(string varName, Span location)
+    {
+        ReportError($"Use of uninitialized variable '{varName}'", location, ErrorPhase.SemanticAnalysis);
+    }
+
+    // ===== CONCURRENCY ERRORS =====
+    public void ReportChannelTypeMismatch(string expectedType, string actualType, Span location)
+    {
+        ReportError($"Channel type mismatch: cannot send '{actualType}' to channel of type '{expectedType}'", 
+            location, ErrorPhase.TypeCheck);
+    }
+
+    // ===== HELPER METHODS =====
+    private void ReportError(string message, Span location, ErrorPhase phase, string? help = null)
+    {
+        var compilerError = new CompilerError
+        {
+            Message = message,
+            Location = location,
+            Severity = ErrorSeverity.Error,
+            Phase = phase,
+            Help = help,
+            SourceLines = FormatSourceContext(location)
+        };
+        Errors.Add(compilerError);
+    }
+
+    private void ReportWarning(string message, Span location, ErrorPhase phase, string? help = null)
+    {
+        var compilerError = new CompilerError
+        {
+            Message = message,
+            Location = location,
+            Severity = ErrorSeverity.Warning,
+            Phase = phase,
+            Help = help,
+            SourceLines = FormatSourceContext(location)
+        };
+        Errors.Add(compilerError);
+    }
+
+    private List<string> FormatSourceContext(Span location)
+    {
+        var lines = new List<string>();
+        
+        // Your existing formatting logic
+        var lineOfOffendingCode = string.Join("",
+            _sourceCode
+            .Skip(location.Start.LineOffset)
+            .TakeWhile(ch => ch != '\n')
+            .ToArray());
+            
+        var lineNumber = location.Start.Line.ToString();
+        lineOfOffendingCode = $"{lineNumber} | {lineOfOffendingCode}";
+        
+        var underlineLength = Math.Max(1, location.End.Column - location.Start.Column);
+        var pointer = new string(' ', lineNumber.Length + 3 + location.Start.Offset - location.Start.LineOffset)
+                   + new string('^', underlineLength);
+        
+        lines.Add(lineOfOffendingCode);
+        lines.Add(pointer);
+        
+        return lines;
+    }
+
+    // Display methods
+    public void PrintErrors()
+    {
+        foreach (var error in Errors)
+        {
+            var severityColor = error.Severity switch
+            {
+                ErrorSeverity.Error => "red",
+                ErrorSeverity.Warning => "yellow", 
+                ErrorSeverity.Info => "blue",
+                _ => "white"
+            };
+
+            Console.WriteLine($"[{error.Phase}] {error.Severity}: {error.Message}");
+            foreach (var line in error.SourceLines)
+            {
+                Console.WriteLine($"  {line}");
+            }
+            if (!string.IsNullOrEmpty(error.Help))
+            {
+                Console.WriteLine($"  Help: {error.Help}");
+            }
+            Console.WriteLine();
+        }
+    }
+}
+
+public class CompilerError
+{
+    public string Message { get; set; } = "";
+    public Span Location { get; set; }
+    public ErrorSeverity Severity { get; set; }
+    public ErrorPhase Phase { get; set; }
+    public string? Help { get; set; }
+    public List<string> SourceLines { get; set; } = [];
 }
 ```
