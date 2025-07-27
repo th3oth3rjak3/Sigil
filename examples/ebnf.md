@@ -263,7 +263,7 @@ labeled_param_list = labeled_param { "," labeled_param } ;
 labeled_param = identifier ":" type_annotation ;
 
 (* Function Declarations *)
-function_declaration = "fn" identifier [ generic_params ] "(" parameter_list ")" [ "->" type_annotation ] block ;
+function_declaration = "fun" identifier [ generic_params ] "(" parameter_list ")" [ "->" type_annotation ] block ;
 parameter_list = [ parameter { "," parameter } ] ;
 parameter = identifier ":" type_annotation ;
 
