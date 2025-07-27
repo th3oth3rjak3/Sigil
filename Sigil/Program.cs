@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using CommandLine;
+using Sigil.CodeGeneration;
 using Sigil.ModuleImporting;
 
 namespace Sigil;
@@ -57,11 +58,10 @@ class Program
 
     private static void Run(string sourceCode)
     {
-        // Lex
-        // Parse
-        // TypeCheck
-        // JIT or Native Compile
-        Console.WriteLine(sourceCode);
+        var backend = new TreeWalkingInterpreter();
+        var compiler = new Compiler(sourceCode, backend);
+        var exitCode = compiler.Compile();
+        Environment.Exit(exitCode);
     }
 
 

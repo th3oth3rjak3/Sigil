@@ -1,13 +1,18 @@
+using Sigil.CodeGeneration;
 using Sigil.ErrorHandling;
 
 namespace Sigil;
 
-public class Compiler(string SourceCode)
+public class Compiler(string SourceCode, ICompilerBackend Backend)
 {
     private ErrorHandler _errorHandler = new(SourceCode);
 
-    public Result<string, Exception> Compile()
+
+
+    // TODO: this should return a "Program" or a "Statement List"
+    public int Compile()
     {
-        return Ok(SourceCode);
+        // TODO: actually compile the code, then execute the AST
+        return Backend.Execute([]);
     }
 }

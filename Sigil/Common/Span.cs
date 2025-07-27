@@ -15,7 +15,14 @@ public record Span
         this.End = End;
     }
 
+    /// <summary>
+    /// The start of the span.
+    /// </summary>
     public Position Start { get; set; }
+
+    /// <summary>
+    /// The end of the span.
+    /// </summary>
     public Position End { get; set; }
 
     /// <summary>
