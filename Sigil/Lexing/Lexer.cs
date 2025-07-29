@@ -40,6 +40,11 @@ public class Lexer(string SourceCode, ErrorHandler ErrorHandler)
     private Position _currentPosition => new(_line, _column, _offset, _lineOffset);
 
     /// <summary>
+    /// The previous position, just before the current position.
+    /// </summary>
+    private Position _lastPosition = new(1, 1, 0, 0);
+
+    /// <summary>
     /// Advance the position of the lexer in the source code.
     /// </summary>
     private void Advance()
@@ -47,6 +52,8 @@ public class Lexer(string SourceCode, ErrorHandler ErrorHandler)
         Peek()
         .EffectSome(currentChar =>
         {
+            _lastPosition = _currentPosition;
+
             _offset++;
 
             if (currentChar == '\n')
@@ -109,6 +116,19 @@ public class Lexer(string SourceCode, ErrorHandler ErrorHandler)
     }
 
     /// <summary>
+    /// IsStartOfDocstringComment checks to see if the lexer is currently at the start of a docstring comment.
+    /// </summary>
+    /// <returns>Returns true when at the start of a docstring comment, otherwise false.</returns>
+    private bool IsStartOfDocstringComment()
+    {
+        var currentIsSlash = Peek().Match(some => some == '/', () => false);
+        var nextIsSlash = PeekNext().Match(some => some == '/', () => false);
+        var thirdIsSlash = PeekAt(_offset + 2).Match(some => some == '/', () => false);
+
+        return currentIsSlash && nextIsSlash && thirdIsSlash;
+    }
+
+    /// <summary>
     /// Make a token that has a single character like ( or .
     /// </summary>
     /// <param name="tokenType">The type of the token.</param>
@@ -116,7 +136,8 @@ public class Lexer(string SourceCode, ErrorHandler ErrorHandler)
     /// <returns>A token.</returns>
     private Token MakeOneCharacterToken(TokenType tokenType, Position startPosition)
     {
-        throw new NotImplementedException("MakeOneCharacterToken not yet implmented");
+        Advance();
+        return new Token(tokenType, new Span(startPosition, _lastPosition));
     }
 
     /// <summary>
@@ -128,16 +149,34 @@ public class Lexer(string SourceCode, ErrorHandler ErrorHandler)
     /// <returns>A Token when the expected character matches the next character in the source, otherwise None.</returns>
     private Option<Token> MakeTwoCharacterToken(TokenType tokenType, char expected, Position startPosition)
     {
-        throw new NotImplementedException("MakeTwoCharacterToken not yet implemented");
-    }
+        var peekResult = PeekNext();
+        if (peekResult.IsNone || peekResult.Unwrap() != expected) return None<Token>();
 
+        Advance();
+        Advance();
+        return new Token(tokenType, new Span(startPosition, _lastPosition));
+    }
     /// <summary>
     /// SkipWhitespace advances over and discards any whitespace characters since the language
     /// does not consider them to be significant.
     /// </summary>
     private void SkipWhitespace()
     {
-        throw new NotImplementedException("SkipWhitespace not implemented.");
+        while (true)
+        {
+            var maybeChar = Peek();
+            if (maybeChar.IsNone) return; // must have reached the end of the source code.
+
+            var ch = maybeChar.Unwrap();
+            if (char.IsWhiteSpace(ch))
+            {
+                Advance();
+            }
+            else
+            {
+                return;
+            }
+        }
     }
 
     /// <summary>
@@ -147,7 +186,41 @@ public class Lexer(string SourceCode, ErrorHandler ErrorHandler)
     /// </summary>
     private void SkipBasicComments()
     {
-        throw new NotImplementedException("SkipBasicComments not implemented.");
+        while (true)
+        {
+            var maybeChar = Peek();
+            if (maybeChar.IsNone) return;
+
+            var ch = maybeChar.Unwrap();
+            if (ch == '\n')
+            {
+                Advance(); // skip the newline to go the start of the next line.
+                return;
+            }
+
+            Advance();
+        }
+    }
+
+    private void SkipWhitespaceAndComments()
+    {
+        while (true)
+        {
+            SkipWhitespace();
+            var currentIsSlash = Peek().Match(some => some == '/', () => false);
+            var nextIsSlash = PeekNext().Match(some => some == '/', () => false);
+            var thirdIsSlash = PeekAt(_offset + 2).Match(some => some == '/', () => false);
+
+            // Basic Comment has // instead of ///
+            if (currentIsSlash && nextIsSlash && !thirdIsSlash)
+            {
+                SkipBasicComments();
+            }
+            else
+            {
+                return;
+            }
+        }
     }
 
     /// <summary>
@@ -165,16 +238,33 @@ public class Lexer(string SourceCode, ErrorHandler ErrorHandler)
     /// two types of numbers in the language.
     /// </summary>
     /// <returns>A numeric token.</returns>
-    private Token ReadNumber()
+    private Token ReadNumber(Position startPosition)
     {
-        throw new NotImplementedException("ReadNumber not implemented");
+        while (Peek().IsSome && IsNumber(Peek().Unwrap()))
+        {
+            Advance();
+        }
+
+        if (Peek().IsSome && Peek().Unwrap() == '.' && PeekNext().IsSome && IsNumber(PeekNext().Unwrap()))
+        {
+            Advance();
+
+            while (Peek().IsSome && IsNumber(Peek().Unwrap()))
+            {
+                Advance();
+            }
+
+            return new Token(TokenType.FloatLiteral, new Span(startPosition, _lastPosition));
+        }
+
+        return new Token(TokenType.IntegerLiteral, new Span(startPosition, _lastPosition));
     }
 
     /// <summary>
     /// ReadChar lexes a character literal token.
     /// </summary>
     /// <returns>A character token.</returns>
-    private Token ReadChar()
+    private Token ReadChar(Position startPosition)
     {
         throw new NotImplementedException("ReadChar not implemented");
     }
@@ -183,9 +273,67 @@ public class Lexer(string SourceCode, ErrorHandler ErrorHandler)
     /// ReadString lexes a string literal token.
     /// </summary>
     /// <returns>A string literal token.</returns>
-    private Token ReadString()
+    private Token ReadString(Position startPosition)
     {
-        throw new NotImplementedException("ReadString not implemented.");
+        Advance(); // consume "
+        while (!IsAtEnd(_offset) && Peek() != '"')
+        {
+            Advance();
+        }
+
+        if (IsAtEnd(_offset) && Peek() != '"')
+        {
+            var span = new Span(startPosition, _lastPosition);
+            ErrorHandler.Report("Unterminated String", span);
+            return new Token(TokenType.Invalid, span);
+        }
+
+        Advance(); // consume closing "
+
+        return new Token(TokenType.StringLiteral, new Span(startPosition, _lastPosition));
+    }
+
+    /// <summary>
+    /// ReadIdentifier creates a token that is either a keyword or a user generated let binding.
+    /// </summary>
+    /// <param name="startPosition">The start position of the current span.</param>
+    /// <returns>An identifier token.</returns>
+    private Token ReadIdentifier(Position startPosition)
+    {
+        while (true)
+        {
+            var maybeChar = Peek();
+            if (maybeChar.IsNone)
+            {
+                break;
+            }
+            else
+            {
+                var ch = maybeChar.Unwrap();
+
+                if (IsLetter(ch) || IsNumber(ch) || IsUnderscore(ch))
+                {
+                    Advance();
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+
+        var span = new Span(startPosition, _lastPosition);
+        var lexeme = span.Slice(SourceCode);
+
+        // Need to check if it's a keyword or a user generate identifier.
+        var maybeKeyword = Keywords.FromString(lexeme);
+        if (maybeKeyword.IsSome)
+        {
+            var keyword = maybeKeyword.Unwrap();
+            return new Token(keyword, span);
+        }
+
+        return new Token(TokenType.Identifier, span);
     }
 
     /// <summary>
@@ -199,7 +347,185 @@ public class Lexer(string SourceCode, ErrorHandler ErrorHandler)
     /// <returns>A list containing zero or more tokens, usually just a single token.</returns>
     private List<Token> ReadTokens()
     {
-        throw new NotImplementedException("ReadTokens not implemented");
+        SkipWhitespaceAndComments();
+
+        var startPosition = _currentPosition;
+
+        var maybeChar = Peek();
+
+        if (maybeChar.IsNone)
+        {
+            var token = new Token(TokenType.Eof, new Span(startPosition, startPosition));
+            return [token];
+        }
+
+        var currentChar = maybeChar.Unwrap();
+
+        if (IsNumber(currentChar))
+        {
+            return [ReadNumber(startPosition)];
+        }
+
+        if (IsLetter(currentChar))
+        {
+            return [ReadIdentifier(startPosition)];
+        }
+
+        List<Token> tokens = [];
+
+        switch (currentChar)
+        {
+            // Literals
+            case '"':
+                var token = ReadString(startPosition);
+                tokens.Add(token);
+                break;
+            case '\'':
+                token = ReadChar(startPosition);
+                tokens.Add(token);
+                break;
+
+            // Delimiters
+            case '(':
+                addOneCharToken(TokenType.LeftParen); break;
+            case ')':
+                addOneCharToken(TokenType.RightParen); break;
+            case '{':
+                addOneCharToken(TokenType.LeftBrace); break;
+            case '}':
+                addOneCharToken(TokenType.RightBrace); break;
+            case '[':
+                addOneCharToken(TokenType.LeftBracket); break;
+            case ']':
+                addOneCharToken(TokenType.RightBracket); break;
+            case ',':
+                addOneCharToken(TokenType.Comma); break;
+            case ';':
+                addOneCharToken(TokenType.Semicolon); break;
+            case ':':
+                addOneCharToken(TokenType.Colon); break;
+            case '.':
+                addOneCharToken(TokenType.Dot); break;
+
+            // Operators
+            case '+':
+                var maybeToken = MakeTwoCharacterToken(TokenType.PlusEqual, '=', startPosition);
+                if (maybeToken.IsSome)
+                {
+                    tokens.Add(maybeToken.Unwrap());
+                    break;
+                }
+
+                addOneCharToken(TokenType.Plus);
+                break;
+            case '-':
+                maybeToken = MakeTwoCharacterToken(TokenType.MinusEqual, '=', startPosition);
+                if (maybeToken.IsSome)
+                {
+                    tokens.Add(maybeToken.Unwrap());
+                    break;
+                }
+
+                maybeToken = MakeTwoCharacterToken(TokenType.Arrow, '>', startPosition);
+                if (maybeToken.IsSome)
+                {
+                    tokens.Add(maybeToken.Unwrap());
+                    break;
+                }
+
+                addOneCharToken(TokenType.Minus);
+                break;
+
+            case '*':
+                maybeToken = MakeTwoCharacterToken(TokenType.StarEqual, '=', startPosition);
+                if (maybeToken.IsSome)
+                {
+                    tokens.Add(maybeToken.Unwrap());
+                    break;
+                }
+
+                addOneCharToken(TokenType.Star);
+                break;
+
+            case '/':
+                if (IsStartOfDocstringComment())
+                {
+                    tokens.Add(ReadDocstringComment());
+                    break;
+                }
+
+                maybeToken = MakeTwoCharacterToken(TokenType.SlashEqual, '=', startPosition);
+                if (maybeToken.IsSome)
+                {
+                    tokens.Add(maybeToken.Unwrap());
+                    break;
+                }
+
+                addOneCharToken(TokenType.Slash);
+                break;
+
+            case '=':
+                maybeToken = MakeTwoCharacterToken(TokenType.EqualEqual, '=', startPosition);
+                if (maybeToken.IsSome)
+                {
+                    tokens.Add(maybeToken.Unwrap());
+                    break;
+                }
+
+                maybeToken = MakeTwoCharacterToken(TokenType.FatArrow, '>', startPosition);
+                if (maybeToken.IsSome)
+                {
+                    tokens.Add(maybeToken.Unwrap());
+                    break;
+                }
+
+                addOneCharToken(TokenType.Equal);
+                break;
+
+            case '!':
+                maybeToken = MakeTwoCharacterToken(TokenType.BangEqual, '=', startPosition);
+                if (maybeToken.IsSome)
+                {
+                    tokens.Add(maybeToken.Unwrap());
+                    break;
+                }
+
+                addOneCharToken(TokenType.Bang);
+                break;
+
+            case '<':
+                maybeToken = MakeTwoCharacterToken(TokenType.LessEqual, '=', startPosition);
+                if (maybeToken.IsSome)
+                {
+                    tokens.Add(maybeToken.Unwrap());
+                    break;
+                }
+
+                addOneCharToken(TokenType.Less);
+                break;
+
+            case '>':
+                maybeToken = MakeTwoCharacterToken(TokenType.GreaterEqual, '=', startPosition);
+                if (maybeToken.IsSome)
+                {
+                    tokens.Add(maybeToken.Unwrap());
+                    break;
+                }
+
+                addOneCharToken(TokenType.Greater);
+                break;
+
+            default:
+                addOneCharToken(TokenType.Invalid);
+                ErrorHandler.Report($"Unexpected Character '{currentChar}'", new Span(startPosition, _lastPosition));
+                break;
+        }
+
+        return tokens;
+
+        void addOneCharToken(TokenType tokenType) =>
+            MakeOneCharacterToken(tokenType, startPosition)
+            .Effect(tokens.Add);
     }
 
     /// <summary>
@@ -207,20 +533,14 @@ public class Lexer(string SourceCode, ErrorHandler ErrorHandler)
     /// </summary>
     /// <param name="ch">The character to check.</param>
     /// <returns>True when it is a letter, otherwise false.</returns>
-    private static bool IsLetter(char ch)
-    {
-        throw new NotImplementedException("IsLetter not implemented");
-    }
+    private static bool IsLetter(char ch) => char.IsAsciiLetter(ch);
 
     /// <summary>
     /// IsNumber checks to see if a character is a valid number in the language.
     /// </summary>
     /// <param name="ch">The character to check.</param>
     /// <returns>True when it's a number, otherwise false.</returns>
-    private static bool IsNumber(char ch)
-    {
-        throw new NotImplementedException("IsNumber not implemented");
-    }
+    private static bool IsNumber(char ch) => char.IsAsciiDigit(ch);
 
     /// <summary>
     /// IsUnderscore checks to see if the input character is an underscore '_'
