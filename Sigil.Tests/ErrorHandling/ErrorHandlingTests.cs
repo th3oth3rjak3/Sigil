@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+
 using Sigil.Common;
 using Sigil.ErrorHandling;
 
@@ -20,7 +21,7 @@ public class ErrorHandlerTests
         handler.Report("Unexpected token", span);
 
         // Assert
-        Assert.Equal(3, handler.Errors.Count);
+        Assert.Equal(1, handler.ErrorCount);
         Assert.StartsWith("[2:5] Error: Unexpected token", handler.Errors[0]);
     }
 
@@ -36,7 +37,7 @@ public class ErrorHandlerTests
         var errors = handler.Errors;
 
         // Assert
-        Assert.Equal(3, errors.Count);
+        Assert.Equal(1, handler.ErrorCount);
         Assert.Equal("2 | let y = 'hello';", errors[1]);
         Assert.Equal("            ^^^^^^^ <- Error Here", errors[2]);
     }
@@ -61,9 +62,9 @@ public class ErrorHandlerTests
         var handler = new ErrorHandler(code);
 
         // Calculate positions for "30" (line 2)
-        int line2Start = 19;
-        int tokenStart = 29;
-        int tokenEnd = tokenStart + 1;
+        var line2Start = 19;
+        var tokenStart = 29;
+        var tokenEnd = tokenStart + 1;
 
         var span = new Span(
             new Position(2, 11, tokenStart, line2Start),
@@ -75,10 +76,11 @@ public class ErrorHandlerTests
         // Assert
         var expected = new[]
         {
-        "[2:11] Error: Numbers not allowed",
-        "2 | let age = 30;",
-        "              ^^ <- Error Here"  // Underlines "30"
-    };
+            "[2:11] Error: Numbers not allowed",
+            "2 | let age = 30;",
+            "              ^^ <- Error Here",  // Underlines "30"
+            "\n"
+        };
 
         Assert.Equal(expected, handler.Errors);
     }
@@ -90,9 +92,9 @@ public class ErrorHandlerTests
         var handler = new ErrorHandler(code);
 
         // Calculate positions for "retrn" (line 2)
-        int line2Start = code.IndexOf("\n") + 1;
-        int tokenStart = code.IndexOf("retrn");
-        int tokenEnd = tokenStart + 5;
+        var line2Start = code.IndexOf("\n") + 1;
+        var tokenStart = code.IndexOf("retrn");
+        var tokenEnd = tokenStart + 5;
 
         var span = new Span(
             new Position(2, 5, tokenStart, line2Start),
@@ -102,10 +104,11 @@ public class ErrorHandlerTests
 
         var expected = new[]
         {
-        "[2:5] Error: Misspelled keyword",
-        "2 |     retrn 5;",
-        "        ^^^^^ <- Error Here"  // Marks "retrn"
-    };
+            "[2:5] Error: Misspelled keyword",
+            "2 |     retrn 5;",
+            "        ^^^^^ <- Error Here",  // Marks "retrn"
+            "\n"
+        };
 
         Assert.Equal(expected, handler.Errors);
     }
@@ -117,8 +120,8 @@ public class ErrorHandlerTests
         var handler = new ErrorHandler(code);
 
         // Calculate positions for end of first line
-        int line1Start = 0;
-        int errorPos = 9;
+        var line1Start = 0;
+        var errorPos = 9;
 
         var span = new Span(
             new Position(1, 10, errorPos, line1Start),
@@ -128,10 +131,11 @@ public class ErrorHandlerTests
 
         var expected = new[]
         {
-        "[1:10] Error: Missing semicolon",
-        "1 | let x = 5",
-        "             ^ <- Error Here"  // Points at end
-    };
+            "[1:10] Error: Missing semicolon",
+            "1 | let x = 5",
+            "             ^ <- Error Here",  // Points at end
+            "\n",
+        };
 
         Assert.Equal(expected, handler.Errors);
     }
@@ -157,7 +161,7 @@ public class ErrorHandlerTests
         // Arrange
         const string code = "function() {\n  return 42;\n}";
         var handler = new ErrorHandler(code);
-        int line2Start = 13;
+        var line2Start = 13;
 
         var span = new Span(
             new Position(2, 1, line2Start, line2Start),
@@ -177,8 +181,8 @@ public class ErrorHandlerTests
         // Arrange
         const string code = "let x = 5;\nlet y = 10;";
         var handler = new ErrorHandler(code);
-        int line1Start = 0;
-        int semicolonPos = code.IndexOf(';');
+        var line1Start = 0;
+        var semicolonPos = code.IndexOf(';');
 
         var span = new Span(
             new Position(1, 10, semicolonPos, line1Start),
@@ -198,8 +202,8 @@ public class ErrorHandlerTests
         // Arrange
         const string code = "if true {\n\treturn 42;\n}";
         var handler = new ErrorHandler(code);
-        int line2Start = 10;
-        int tabPos = 10;
+        var line2Start = 10;
+        var tabPos = 10;
 
         var span = new Span(
             new Position(2, 1, tabPos, line2Start),
@@ -285,9 +289,9 @@ public class ErrorHandlerTests
         handler.Report("Second error", span2);
 
         // Assert
-        Assert.Equal(6, handler.Errors.Count);
+        Assert.Equal(2, handler.ErrorCount);
         Assert.Contains("First error", handler.Errors[0]);
-        Assert.Contains("Second error", handler.Errors[3]);
+        Assert.Contains("Second error", handler.Errors[4]);
     }
 
     [Fact]
@@ -296,7 +300,7 @@ public class ErrorHandlerTests
         // Arrange
         const string code = "let x = 5";
         var handler = new ErrorHandler(code);
-        int eofPos = code.Length;
+        var eofPos = code.Length;
 
         var span = new Span(
             new Position(1, 10, eofPos, 0),

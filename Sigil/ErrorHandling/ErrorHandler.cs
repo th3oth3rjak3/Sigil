@@ -9,19 +9,36 @@ namespace Sigil.ErrorHandling;
 /// to the terminal.
 /// </summary>
 /// <param name="sourceCode">The input source code used for displaying errors.</param>
-public class ErrorHandler(string sourceCode)
+public class ErrorHandler(string SourceCode)
 {
-    private readonly string _sourceCode = sourceCode;
+    /// <summary>
+    /// MAX_ERROR_DISPLAY_COUNT is the maximum number of errors to show to a user at a time
+    /// to keep them from getting overwhelmed.
+    /// </summary>
+    const int MAX_ERROR_DISPLAY_COUNT = 5;
+
+    private int _errorCount = 0;
+
+    /// <summary>
+    /// _suppressedErrorCount collects the number of errors that would have been reported,
+    /// but were supressed because there were too many to display.
+    /// </summary>
+    private int _supressedErrorCount = 0;
+
+    private bool _tooManyErrors => _errorCount >= MAX_ERROR_DISPLAY_COUNT;
+    public int ErrorCount => _errorCount + _supressedErrorCount;
+
+    private List<string> _errors = new();
 
     /// <summary>
     /// A list of all accumulate errors that will be printed if any errors occurred.
     /// </summary>
-    public List<string> Errors { get; set; } = [];
+    public List<string> Errors => GetErrors();
 
     /// <summary>
     /// HadError is true if there are any errors.
     /// </summary>
-    public bool HadError => Errors.Count > 0;
+    public bool HadError => ErrorCount > 0;
 
     /// <summary>
     /// Document that an error occurred in the compiler with its location
@@ -31,11 +48,22 @@ public class ErrorHandler(string sourceCode)
     /// <param name="location">Where the error occurred in the source code.</param>
     public void Report(string error, Span location)
     {
-        Errors.Add($"[{location.Start.Line}:{location.Start.Column}] Error: {error}");
+        if (_tooManyErrors)
+        {
+            _supressedErrorCount++;
+            return;
+        }
+
+        AddError(error, location);
+    }
+
+    private void AddError(string error, Span location)
+    {
+        _errors.Add($"[{location.Start.Line}:{location.Start.Column}] Error: {error}");
 
         var lineOfOffendingCode = string.Join(
             "",
-            _sourceCode
+            SourceCode
             .Skip(location.Start.LineOffset)
             .TakeWhile(ch => ch != '\n')
             .ToArray());
@@ -49,7 +77,25 @@ public class ErrorHandler(string sourceCode)
                    + new string('^', underlineLength)
                    + " <- Error Here";
 
-        Errors.Add(lineOfOffendingCode);
-        Errors.Add(pointer);
+        _errors.Add(lineOfOffendingCode);
+        _errors.Add(pointer);
+        _errors.Add("\n");
+
+        _errorCount++;
+    }
+
+    private List<string> GetErrors()
+    {
+        if (_tooManyErrors)
+        {
+            // Add the error suppression statistics
+            var errorsToReport = _errors;
+            errorsToReport.Add($"Showing {MAX_ERROR_DISPLAY_COUNT} of {ErrorCount} errors.");
+            errorsToReport.Add("Fix the above errors and recompile to see the rest.");
+            errorsToReport.Add("\n");
+            return errorsToReport;
+        }
+
+        return _errors;
     }
 }
