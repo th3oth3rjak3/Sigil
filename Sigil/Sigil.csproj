@@ -8,7 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="TypeChecking/" />
+    <Compile Remove="TypeChecking\**" />
+    <EmbeddedResource Remove="TypeChecking\**" />
+    <None Remove="TypeChecking\**" />
   </ItemGroup>
 
   <ItemGroup>

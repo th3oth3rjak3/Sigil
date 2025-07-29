@@ -68,6 +68,7 @@ public enum TokenType
     Newline,
     Whitespace,
     Comment,
+    DocStringComment,
     Eof,
 
     // Errors

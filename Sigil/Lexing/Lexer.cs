@@ -66,7 +66,6 @@ public class Lexer(string SourceCode, ErrorHandler ErrorHandler)
             {
                 _column++;
             }
-
         });
     }
 
@@ -228,9 +227,19 @@ public class Lexer(string SourceCode, ErrorHandler ErrorHandler)
     /// comments can be used later in language tooling.
     /// </summary>
     /// <returns>A token representing a docstring comment.</returns>
-    private Token ReadDocstringComment()
+    private Token ReadDocstringComment(Position startPosition)
     {
-        throw new NotImplementedException("ReadDocstringComment not implemented");
+        while (IsStartOfDocstringComment())
+        {
+            while (Peek().IsSome && Peek().Unwrap() != '\n')
+            {
+                Advance();
+            }
+
+            SkipWhitespace();
+        }
+
+        return new Token(TokenType.DocStringComment, new Span(startPosition, _lastPosition));
     }
 
     /// <summary>
@@ -450,7 +459,7 @@ public class Lexer(string SourceCode, ErrorHandler ErrorHandler)
             case '/':
                 if (IsStartOfDocstringComment())
                 {
-                    tokens.Add(ReadDocstringComment());
+                    tokens.Add(ReadDocstringComment(startPosition));
                     break;
                 }
 
