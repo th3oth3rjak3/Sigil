@@ -244,25 +244,6 @@ public class InterpreterTests
     }
 
     [Fact]
-    public void Interpreter_ShouldHandleFibTest()
-    {
-        var source = """
-            fun fib(n) { 
-                if (n < 2) {
-                    return n;
-                }
-
-                return fib(n - 1) + fib(n - 2);
-            }
-
-            return fib(10);
-        """;
-
-        var result = RunAndCapture(source);
-        Assert.Equal("55", result);
-    }
-
-    [Fact]
     public void Interpreter_shouldHandleFactorialTest()
     {
         var source = """
@@ -281,10 +262,11 @@ public class InterpreterTests
     }
 
     [Theory]
+    [InlineData(10, "55")]
     [InlineData(25, "75025")]
-    [InlineData(30, "832040")]
-    // [InlineData(35, "9227465")] // Throws OOM Exception.
-    // [InlineData(40, "102334155")] // Throws OOM Exception.
+    //[InlineData(30, "832040")] // Too slow for test cycle.
+    //[InlineData(35, "9227465")] // Throws OOM Exception.
+    //[InlineData(40, "102334155")] // Throws OOM Exception.
     public void Benchmark_Fibonacci(int n, string expected)
     {
         var source = $$"""
