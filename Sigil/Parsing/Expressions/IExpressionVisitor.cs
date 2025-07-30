@@ -1,12 +1,14 @@
 ﻿namespace Sigil.Parsing.Expressions;
 public interface IExpressionVisitor<T>
 {
-    public T VisitBinaryExpression(BinaryExpression BinaryExpression);
-    public T VisitUnaryExpression(UnaryExpression UnaryExpression);
-    public T VisitGroupingExpression(GroupingExpression GroupingExpression);
-    public T VisitFloatLiteralExpression(FloatLiteralExpression FloatLiteralExpression);
-    public T VisitIntegerLiteralExpression(IntegerLiteralExpression IntegerLiteralExpression);
-    public T VisitStringLiteralExpression(StringLiteralExpression StringLiteralExpression);
-    public T VisitCharacterLiteralExpression(CharacterLiteralExpression CharacterLiteralExpression);
-    public T VisitBooleanLiteralExpression(BooleanLiteralExpression BooleanLiteralExpression);
+    public T VisitBinaryExpression(BinaryExpression expression);
+    public T VisitUnaryExpression(UnaryExpression expression);
+    public T VisitGroupingExpression(GroupingExpression expression);
+    public T VisitFloatLiteralExpression(FloatLiteralExpression expression);
+    public T VisitIntegerLiteralExpression(IntegerLiteralExpression expression);
+    public T VisitStringLiteralExpression(StringLiteralExpression expression);
+    public T VisitCharacterLiteralExpression(CharacterLiteralExpression expression);
+    public T VisitBooleanLiteralExpression(BooleanLiteralExpression expression);
+    public T VisitIdentifierExpression(IdentifierExpression expression);
+    public T VisitCallExpression(CallExpression expression);
 }

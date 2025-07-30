@@ -34,8 +34,15 @@ public record Span
     /// <summary>
     /// Returns a substring of the source code covered by this span
     /// </summary>
-    public string Slice(string sourceCode) =>
-        sourceCode[Start.Offset..(End.Offset + 1)];
+    public string Slice(string sourceCode)
+    {
+        // Handle EOF tokens that point beyond the source
+        if (Start.Offset >= sourceCode.Length)
+            return "";
+
+        var endIndex = Math.Min(End.Offset + 1, sourceCode.Length);
+        return sourceCode[Start.Offset..endIndex];
+    }
 
     /// <summary>
     /// Merges two spans to produce one that covers both (even if disjoint)

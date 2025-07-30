@@ -1,12 +1,11 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+
 using CommandLine;
+
 using Sigil.CodeGeneration;
 using Sigil.ModuleImporting;
 
 namespace Sigil;
-
-
-public class Stmt { }
 
 [ExcludeFromCodeCoverage]
 class Program
@@ -34,7 +33,6 @@ class Program
             (RunOptions opts) => RunFile(opts),
             (BuildOptions opts) => BuildNative(opts),
             errs => 1);
-
     }
 
     /// <summary>
@@ -63,7 +61,6 @@ class Program
         var exitCode = compiler.Compile();
         Environment.Exit(exitCode);
     }
-
 
     private static int BuildNative(BuildOptions opts)
     {
