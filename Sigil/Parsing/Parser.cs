@@ -100,6 +100,16 @@ public class Parser(List<Token> Tokens, ErrorHandler ErrorHandler, string Source
             if (assignmentResult.IsSome) return assignmentResult;
         }
 
+        var exprResult = ParseExpression();
+        if (exprResult.IsSome)
+        {
+            var expr = exprResult.Unwrap();
+            var semicolon = TryConsume(TokenType.Semicolon, "Expected ';' after expression.");
+            var endPos = semicolon.Match(some => some.Span.End, () => expr.Span.End);
+            var span = new Span(expr.Span.Start, endPos);
+            return Some<Statement>(new ExpressionStatement(expr, span));
+        }
+
         ErrorHandler.Report("Expected statement (let, return, or block).", Peek().Span);
         return None<Statement>();
     }

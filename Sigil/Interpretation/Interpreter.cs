@@ -133,13 +133,8 @@ public class Interpreter : IExpressionVisitor<object?>, IStatementVisitor<object
 
     public object? VisitExpressionStatement(ExpressionStatement stmt)
     {
-        var result = stmt.Expression.Accept(this);
-
-        // For REPL-like behavior, print the result
-        var output = Stringify(result);
-        Console.WriteLine(output); // This should be the actual output
-
-        return result;
+        stmt.Expression.Accept(this);
+        return null;
     }
 
     public object? VisitLetStatement(LetStatement stmt)
