@@ -275,7 +275,86 @@ public class Lexer(string SourceCode, ErrorHandler ErrorHandler)
     /// <returns>A character token.</returns>
     private Token ReadChar(Position startPosition)
     {
-        throw new NotImplementedException("ReadChar not implemented");
+        Advance(); // Consume the opening quote
+
+        var value = None<char>();
+
+        if (Peek().IsSome && Peek().Unwrap() != '\'')
+        {
+            var currentChar = Peek().Unwrap();
+
+            if (currentChar == '\\')
+            {
+                Advance(); // Consume the backslash
+
+                if (Peek().IsSome)
+                {
+                    switch (Peek().Unwrap())
+                    {
+                        case '0': value = '\0'; break;
+                        case 'n': value = '\n'; break;
+                        case 'r': value = '\r'; break;
+                        case 't': value = '\t'; break;
+                        case '\\': value = '\\'; break;
+                        case '\'': value = '\''; break;
+                        case '"': value = '"'; break;
+                        default:
+                            var errorSpan = new Span(_currentPosition, _currentPosition);
+                            ErrorHandler.Report("Invalid escape sequence", errorSpan);
+                            // Consume bad char and recover by finding the closing quote
+                            Advance();
+                            while (Peek().IsSome && Peek().Unwrap() != '\'') Advance();
+                            if (Peek().IsSome) Advance(); // Consume closing quote
+                            return new Token(TokenType.Invalid, new Span(startPosition, _lastPosition));
+                    }
+                    Advance(); // Consume the escape character
+                }
+                else
+                {
+                    ErrorHandler.Report("Incomplete escape sequence", new Span(startPosition, _lastPosition));
+                    return new Token(TokenType.Invalid, new Span(startPosition, _lastPosition));
+                }
+            }
+            else
+            {
+                value = Peek().Unwrap();
+                Advance();
+            }
+        }
+
+        if (value.IsNone)
+        {
+            // This handles empty literals like ''
+            ErrorHandler.Report("Empty character literal", new Span(startPosition, _currentPosition));
+            // Consume the closing quote if it's there
+            if (Peek().IsSome && Peek().Unwrap() == '\'') Advance();
+            return new Token(TokenType.Invalid, new Span(startPosition, _lastPosition));
+        }
+
+        if (Peek().IsSome && Peek().Unwrap() == '\'')
+        {
+            Advance(); // Consume the closing quote
+        }
+        else
+        {
+            // This handles two cases:
+            // 1. The literal is unterminated (e.g., 'a at EOF)
+            // 2. There are too many characters (e.g., 'ab')
+            if (IsAtEnd(_offset))
+            {
+                ErrorHandler.Report("Unterminated character literal", new Span(startPosition, _lastPosition));
+            }
+            else
+            {
+                ErrorHandler.Report("Too many characters in character literal", new Span(_currentPosition, _currentPosition));
+                // Consume until the closing quote to prevent cascading errors
+                while (Peek().IsSome && Peek().Unwrap() != '\'') Advance();
+                if (Peek().IsSome) Advance(); // Consume the closing quote
+            }
+            return new Token(TokenType.Invalid, new Span(startPosition, _lastPosition));
+        }
+
+        return new Token(TokenType.CharacterLiteral, new Span(startPosition, _lastPosition));
     }
 
     /// <summary>

@@ -5,6 +5,7 @@ using Sigil.Parsing.Expressions;
 using Sigil.Parsing.Statements;
 
 namespace Sigil.Tests.Parsing;
+
 public class ParserTests
 {
     private Parser CreateParser(string source)
@@ -22,26 +23,27 @@ public class ParserTests
     [InlineData("true")]
     [InlineData("false")]
     [InlineData("identifier")]
+    [InlineData("'a'")]
     public void Parser_ShouldParseLiteralExpressions(string input)
     {
-        var source = $"return {input};";
-        var parser = CreateParser(source);
+        string source = $"{input};";
+        Parser parser = CreateParser(source);
         var statements = parser.Parse();
 
         Assert.Single(statements);
-        Assert.IsType<ReturnStatement>(statements[0]);
+        Assert.IsType<ExpressionStatement>(statements[0]);
 
-        var exprStmt = (ReturnStatement)statements[0];
+        var exprStmt = (ExpressionStatement)statements[0];
         Assert.NotNull(exprStmt.Expression);
     }
 
     [Fact]
     public void Parser_ShouldParseIntegerLiteral()
     {
-        var parser = CreateParser("return 42;");
+        var parser = CreateParser("42;");
         var statements = parser.Parse();
 
-        var exprStmt = (ReturnStatement)statements[0];
+        var exprStmt = (ExpressionStatement)statements[0];
         var literal = Assert.IsType<IntegerLiteralExpression>(exprStmt.Expression);
         Assert.Equal(42, literal.Value);
     }
@@ -49,10 +51,10 @@ public class ParserTests
     [Fact]
     public void Parser_ShouldParseFloatLiteral()
     {
-        var parser = CreateParser("return 3.14;");
+        var parser = CreateParser("3.14;");
         var statements = parser.Parse();
 
-        var exprStmt = (ReturnStatement)statements[0];
+        var exprStmt = (ExpressionStatement)statements[0];
         var literal = Assert.IsType<FloatLiteralExpression>(exprStmt.Expression);
         Assert.Equal(3.14, literal.Value);
     }
@@ -60,10 +62,10 @@ public class ParserTests
     [Fact]
     public void Parser_ShouldParseStringLiteral()
     {
-        var parser = CreateParser("return \"hello world\";");
+        var parser = CreateParser("\"hello world\";");
         var statements = parser.Parse();
 
-        var exprStmt = (ReturnStatement)statements[0];
+        var exprStmt = (ExpressionStatement)statements[0];
         var literal = Assert.IsType<StringLiteralExpression>(exprStmt.Expression);
         Assert.Equal("hello world", literal.Value);
     }
@@ -71,21 +73,32 @@ public class ParserTests
     [Fact]
     public void Parser_ShouldParseBooleanLiterals()
     {
-        var parser = CreateParser("return true;");
+        var parser = CreateParser("true;");
         var statements = parser.Parse();
 
-        var exprStmt = (ReturnStatement)statements[0];
+        var exprStmt = (ExpressionStatement)statements[0];
         var literal = Assert.IsType<BooleanLiteralExpression>(exprStmt.Expression);
         Assert.True(literal.Value);
     }
 
     [Fact]
-    public void Parser_ShouldParseIdentifier()
+    public void Parser_ShouldParseCharacterLiteral()
     {
-        var parser = CreateParser("return myVariable;");
+        var parser = CreateParser("'a';");
         var statements = parser.Parse();
 
-        var exprStmt = (ReturnStatement)statements[0];
+        var exprStmt = (ExpressionStatement)statements[0];
+        var literal = Assert.IsType<CharacterLiteralExpression>(exprStmt.Expression);
+        Assert.Equal('a', literal.Value);
+    }
+
+    [Fact]
+    public void Parser_ShouldParseIdentifier()
+    {
+        var parser = CreateParser("myVariable;");
+        var statements = parser.Parse();
+
+        var exprStmt = (ExpressionStatement)statements[0];
         var identifier = Assert.IsType<IdentifierExpression>(exprStmt.Expression);
         Assert.Equal("myVariable", identifier.Name);
     }
@@ -93,10 +106,10 @@ public class ParserTests
     [Fact]
     public void Parser_ShouldParseSimpleBinaryExpression()
     {
-        var parser = CreateParser("return 1 + 2;");
+        var parser = CreateParser("1 + 2;");
         var statements = parser.Parse();
 
-        var exprStmt = (ReturnStatement)statements[0];
+        var exprStmt = (ExpressionStatement)statements[0];
         var binary = Assert.IsType<BinaryExpression>(exprStmt.Expression);
 
         Assert.IsType<IntegerLiteralExpression>(binary.Left);
@@ -107,10 +120,10 @@ public class ParserTests
     [Fact]
     public void Parser_ShouldRespectOperatorPrecedence()
     {
-        var parser = CreateParser("return 1 + 2 * 3;");
+        var parser = CreateParser("1 + 2 * 3;");
         var statements = parser.Parse();
 
-        var exprStmt = (ReturnStatement)statements[0];
+        var exprStmt = (ExpressionStatement)statements[0];
         var binary = Assert.IsType<BinaryExpression>(exprStmt.Expression);
 
         // Should be: 1 + (2 * 3)
@@ -125,10 +138,10 @@ public class ParserTests
     [Fact]
     public void Parser_ShouldParseUnaryExpression()
     {
-        var parser = CreateParser("return -42;");
+        var parser = CreateParser("-42;");
         var statements = parser.Parse();
 
-        var exprStmt = (ReturnStatement)statements[0];
+        var exprStmt = (ExpressionStatement)statements[0];
         var unary = Assert.IsType<UnaryExpression>(exprStmt.Expression);
 
         Assert.Equal(TokenType.Minus, unary.Operator.TokenType);
@@ -138,10 +151,10 @@ public class ParserTests
     [Fact]
     public void Parser_ShouldParseGroupingExpression()
     {
-        var parser = CreateParser("return (1 + 2) * 3;");
+        var parser = CreateParser("(1 + 2) * 3;");
         var statements = parser.Parse();
 
-        var exprStmt = (ReturnStatement)statements[0];
+        var exprStmt = (ExpressionStatement)statements[0];
         var binary = Assert.IsType<BinaryExpression>(exprStmt.Expression);
 
         // Should be: (1 + 2) * 3
@@ -192,7 +205,7 @@ public class ParserTests
         var source = """
         let x = 42;
         let y = x + 1;
-        return y;
+        y;
         """;
 
         var parser = CreateParser(source);
@@ -201,7 +214,7 @@ public class ParserTests
         Assert.Equal(3, statements.Count);
         Assert.IsType<LetStatement>(statements[0]);
         Assert.IsType<LetStatement>(statements[1]);
-        Assert.IsType<ReturnStatement>(statements[2]);
+        Assert.IsType<ExpressionStatement>(statements[2]);
     }
 
     [Fact]
@@ -301,5 +314,19 @@ public class ParserTests
 
         Assert.IsType<BlockStatement>(outerBlock.Statements[0]);
         Assert.IsType<LetStatement>(outerBlock.Statements[1]);
+    }
+
+    [Fact]
+    public void Parser_ShouldParseCallExpressionStatement()
+    {
+        var source = "myFunc(1, 2);";
+        var parser = CreateParser(source);
+        var statements = parser.Parse();
+
+        Assert.Single(statements);
+        var exprStmt = Assert.IsType<ExpressionStatement>(statements[0]);
+        var callExpr = Assert.IsType<CallExpression>(exprStmt.Expression);
+        Assert.IsType<IdentifierExpression>(callExpr.Callee);
+        Assert.Equal(2, callExpr.Arguments.Count);
     }
 }

@@ -1,4 +1,4 @@
-﻿using Sigil.ErrorHandling;
+﻿﻿using Sigil.ErrorHandling;
 using Sigil.Interpretation;
 using Sigil.Lexing;
 using Sigil.Parsing;
@@ -10,69 +10,45 @@ public class InterpreterTests
     private string RunAndCapture(string source)
     {
         var output = new StringWriter();
-        var originalOut = Console.Out;
-        Console.SetOut(output);
+        var errorHandler = new ErrorHandler(source);
 
-        try
+        var lexer = new Lexer(source, errorHandler);
+        var tokens = lexer.Tokenize();
+        if (errorHandler.HadError) return string.Join("\n", errorHandler.Errors);
+
+        var parser = new Parser(tokens, errorHandler, source);
+        var statements = parser.Parse();
+        if (errorHandler.HadError) return string.Join("\n", errorHandler.Errors);
+
+        var interpreter = new Interpreter(source, output);
+        interpreter.Interpret(statements);
+
+        if (interpreter.ErrorHandler.HadError)
         {
-            var errorHandler = new ErrorHandler(source);
-            var lexer = new Lexer(source, errorHandler);
-            var tokens = lexer.Tokenize();
-            var parser = new Parser(tokens, errorHandler, source);
-            var statements = parser.Parse();
-
-            if (errorHandler.HadError)
-            {
-                return "";
-            }
-
-            var interpreter = new Interpreter(errorHandler);
-            interpreter.Interpret(statements);
-
-            // Get all output and filter out debug lines
-            var allOutput = output.ToString();
-            var lines = allOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-
-            // Find lines that are actual program output (numbers, not debug messages)
-            var programOutput = lines
-                .Where(line =>
-                    !line.StartsWith("===") &&
-                    !line.StartsWith("Tokens:") &&
-                    !line.StartsWith("Statements:") &&
-                    !line.StartsWith("Parse errors:") &&
-                    !line.StartsWith("Starting") &&
-                    !line.StartsWith("Interpreting") &&
-                    !line.StartsWith("Executing") &&
-                    !line.StartsWith("Visiting") &&
-                    !line.StartsWith("Expression result:") &&
-                    !line.StartsWith("Stringified:") &&
-                    !line.StartsWith("Statement result:") &&
-                    !line.StartsWith("Interpretation") &&
-                    !line.StartsWith("Defining") &&
-                    !line.StartsWith("Looking") &&
-                    !line.StartsWith("Found:") &&
-                    !string.IsNullOrWhiteSpace(line))
-                .LastOrDefault(); // Get the last meaningful output
-
-            return programOutput?.Trim() ?? "";
+            // For now, we don't test for runtime errors this way.
+            return string.Join("\n", interpreter.ErrorHandler.Errors);
         }
-        finally
-        {
-            Console.SetOut(originalOut);
-        }
+
+        var result = output.ToString();
+        var lines = result.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+
+        // Most tests expect the last line of output.
+        return lines.LastOrDefault()?.Trim() ?? "";
     }
 
     // Remove the debug Console.WriteLine statements from your parser methods:
     // - ParsePrimary()
-    // - Match()  
+    // - Match()
     // - Advance()
+
 
     // And add some interpreter tests:
     [Fact]
     public void Interpreter_ShouldEvaluateSimpleArithmetic()
     {
-        var source = "return 1 + 2 * 3;"; // Should print: 7
+        var source = "print 1 + 2 * 3;"; // Should print: 7
         var result = RunAndCapture(source);
+        Console.WriteLine(result);
         Assert.Equal("7", result);
     }
 
@@ -82,7 +58,7 @@ public class InterpreterTests
         var source = """
         let x = 10;
         let y = 20;
-        return x + y;
+        print x + y;
         """;
         var result = RunAndCapture(source);
         Assert.Equal("30", result);
@@ -93,47 +69,8 @@ public class InterpreterTests
     {
         var source = "42;";
         var result = RunAndCapture(source);
-
-        // Let's see what we actually get
-        Console.WriteLine($"Result: '{result}'");
-        Console.WriteLine($"Length: {result.Length}");
-    }
-
-
-
-    [Fact]
-    public void Interpreter_ShouldRequireExplicitReturn()
-    {
-        var source = "return 1 + 2 * 3;"; // Now requires 'return'
-        var result = RunAndCapture(source);
-        Assert.Equal("7", result);
-    }
-
-    [Fact]
-    public void Interpreter_ShouldHandleVariablesWithReturn()
-    {
-        var source = """
-        let x = 10;
-        let y = 20;
-        return x + y;
-        """;
-        var result = RunAndCapture(source);
-        Assert.Equal("30", result);
-    }
-
-    [Fact]
-    public void Parser_ShouldRejectBareExpressions()
-    {
-        var source = "42;"; // This should now be invalid
-        var errorHandler = new ErrorHandler(source);
-        var lexer = new Lexer(source, errorHandler);
-        var tokens = lexer.Tokenize();
-        var parser = new Parser(tokens, errorHandler, source);
-
-        var statements = parser.Parse();
-
-        // Should have parse errors
-        Assert.True(errorHandler.HadError);
+        // This test has no print statement, so output should be empty.
+        Assert.Equal("", result);
     }
 
     [Fact]
@@ -142,7 +79,7 @@ public class InterpreterTests
         var source = """
         let x = 5;
         if x > 3 {
-            return 42;
+            print 42;
         }
         """;
         var result = RunAndCapture(source);
@@ -155,9 +92,9 @@ public class InterpreterTests
         var source = """
         let x = 1;
         if x > 3 {
-            return 42;
+            print 42;
         } else {
-            return 99;
+            print 99;
         }
         """;
         var result = RunAndCapture(source);
@@ -174,7 +111,7 @@ public class InterpreterTests
             sum = sum + i;
             i = i + 1;
         }
-        return sum;
+        print sum;
         """;
         var result = RunAndCapture(source);
         Assert.Equal("3", result); // 0 + 1 + 2 = 3
@@ -185,7 +122,7 @@ public class InterpreterTests
     {
         var source = """
         let result = true and false;
-        return result;
+        print(result);
         """;
         var result = RunAndCapture(source);
         Assert.Equal("False", result);
@@ -196,7 +133,7 @@ public class InterpreterTests
     {
         var source = """
         let result = false or true;
-        return result;
+        print(result);
         """;
         var result = RunAndCapture(source);
         Assert.Equal("True", result);
@@ -206,7 +143,7 @@ public class InterpreterTests
     public void Interpreter_ShouldShortCircuitLogicalAnd()
     {
         var source = """
-        return false and (5 / 0); // Should not divide by zero
+        print(false and (5 / 0)); // Should not divide by zero
         """;
         var result = RunAndCapture(source);
         Assert.Equal("False", result);
@@ -218,7 +155,7 @@ public class InterpreterTests
         var source = """
         let x = 10;
         x = 20;
-        return x;
+        print(x);
         """;
         var result = RunAndCapture(source);
         Assert.Equal("20", result);
@@ -237,10 +174,12 @@ public class InterpreterTests
         var parser = new Parser(tokens, errorHandler, source);
         var statements = parser.Parse();
 
-        var interpreter = new Interpreter(errorHandler);
+        var interpreter = new Interpreter(source);
         interpreter.Interpret(statements);
 
-        Assert.True(errorHandler.HadError);
+        Assert.False(errorHandler.HadError); // Parsing Error Handler, not for runtime use.
+        Assert.True(interpreter.ErrorHandler.HadError); // should have been a runtime error.
+
     }
 
     [Fact]
@@ -254,11 +193,35 @@ public class InterpreterTests
             return n * factorial(n - 1);
         }
 
-        return factorial(5); // 120
+        print(factorial(5)); // 120
         """;
 
         var result = RunAndCapture(source);
         Assert.Equal("120", result);
+    }
+
+    [Fact]
+    public void Interpreter_ShouldHandleStringAndCharConcatenation()
+    {
+        var source = """
+        let greeting = "hello";
+        let space = ' ';
+        let world = "world";
+        let exclam = '!';
+        print greeting + space + world + exclam;
+        """;
+        var result = RunAndCapture(source);
+        Assert.Equal("hello world!", result);
+    }
+
+    [Fact]
+    public void Interpreter_ShouldHandleCharConcatenation()
+    {
+        var source = """
+        print('a' + 'b' + "c");
+        """;
+        var result = RunAndCapture(source);
+        Assert.Equal("abc", result);
     }
 
     [Theory]
@@ -276,7 +239,7 @@ public class InterpreterTests
             }
             return fib(n - 1) + fib(n - 2);
         }
-        return fib({{n}});
+        print fib({{n}});
         """;
 
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();

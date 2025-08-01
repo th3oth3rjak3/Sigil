@@ -475,9 +475,9 @@ fun test() {}
     {
         var input = """
   // first comment
-    
+
   // second comment
-  
+
 /// docstring
 let x = 5;
 """;
@@ -559,5 +559,47 @@ let x = 5;
         Assert.Equal(2, tokens.Count);
         Assert.Equal(TokenType.Identifier, tokens.First().TokenType);
         Assert.Equal(longIdentifier, tokens.First().Span.Slice(longIdentifier));
+    }
+
+    [Theory]
+    [InlineData("'a'", "a")]
+    [InlineData("'0'", "0")]
+    [InlineData("'*'", "*")]
+    [InlineData("' '", " ")]
+    [InlineData("'\n'", "\n")]
+    [InlineData("'\\0'", "\0")]
+    [InlineData("'\\n'", "\n")]
+    [InlineData("'\\r'", "\r")]
+    [InlineData("'\\t'", "\t")]
+    [InlineData("'\\\\'", "\\")]
+    [InlineData("'\\''", "'")]
+    [InlineData("'\\\"'", "\"")]
+    public void TheLexer_ShouldLexCharacterLiterals_WhenValid(string input, string expectedValue)
+    {
+        var errorHandler = new ErrorHandler(input);
+        var lexer = new Lexer(input, errorHandler);
+        var tokens = lexer.Tokenize();
+
+        Assert.Equal(2, tokens.Count);
+        Assert.Equal(TokenType.CharacterLiteral, tokens.First().TokenType);
+        Assert.Equal(TokenType.Eof, tokens.Last().TokenType);
+    }
+
+    [Theory]
+    [InlineData("'ab'")]
+    [InlineData("''")]
+    [InlineData("'\n\r'")]
+    [InlineData("'\\q'")]
+    [InlineData("  'a '")]
+    [InlineData("'a")]
+    public void TheLexer_ShouldProduceInvalidTokens_ForInvalidCharacterLiterals(string input)
+    {
+        var errorHandler = new ErrorHandler(input);
+        var lexer = new Lexer(input, errorHandler);
+        var tokens = lexer.Tokenize();
+
+        Assert.Equal(2, tokens.Count);
+        Assert.Equal(TokenType.Invalid, tokens.First().TokenType);
+        Assert.Equal(TokenType.Eof, tokens.Last().TokenType);
     }
 }

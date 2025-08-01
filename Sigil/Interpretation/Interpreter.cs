@@ -2,7 +2,6 @@ using Sigil.CodeGeneration;
 using Sigil.Common;
 using Sigil.ErrorHandling;
 using Sigil.Lexing;
-using Sigil.Parsing;
 using Sigil.Parsing.Expressions;
 using Sigil.Parsing.Statements;
 
@@ -10,17 +9,18 @@ namespace Sigil.Interpretation;
 
 public class Interpreter : IExpressionVisitor<object?>, IStatementVisitor<object?>, ICompilerBackend
 {
-    private readonly ErrorHandler _errorHandler;
+    public ErrorHandler ErrorHandler { get; set; }
+    public Environment Environment { get; private set; }
+
     private readonly Dictionary<string, FunctionStatement> _functions = new();
+    private TextWriter _outputWriter;
 
-
-    private Environment _environment;
-
-    public Interpreter(string SourceCode)
+    public Interpreter(string SourceCode, TextWriter? outputWriter = null)
     {
         // TODO: figure out how better to handle runtime errors.
-        _errorHandler = new ErrorHandler(SourceCode);
-        _environment = new Environment();
+        ErrorHandler = new ErrorHandler(SourceCode);
+        Environment = new Environment();
+        _outputWriter = outputWriter ?? Console.Out;
     }
 
     public int Execute(List<Statement> nodes)
@@ -41,11 +41,11 @@ public class Interpreter : IExpressionVisitor<object?>, IStatementVisitor<object
         catch (ReturnValue returnValue)
         {
             // Handle return at top-level - print the value
-            Console.WriteLine(Stringify(returnValue.Value));
+            _outputWriter.WriteLine(Stringify(returnValue.Value));
         }
         catch (RuntimeException ex)
         {
-            _errorHandler.Report(ex.Message, ex.Span);
+            ErrorHandler.Report(ex.Message, ex.Span);
         }
     }
 
@@ -70,12 +70,15 @@ public class Interpreter : IExpressionVisitor<object?>, IStatementVisitor<object
         return expr.Value;
     }
 
-    public object? VisitIdentifierExpression(IdentifierExpression expr)
+    public object? VisitCharacterLiteralExpression(CharacterLiteralExpression expression)
     {
-        return _environment.Get(expr.Name, expr.Span);
+        return expression.Value;
     }
 
-    // Add these cases to your VisitBinaryExpression method in Interpreter.cs:
+    public object? VisitIdentifierExpression(IdentifierExpression expr)
+    {
+        return Environment.Get(expr.Name, expr.Span);
+    }
 
     public object? VisitBinaryExpression(BinaryExpression expr)
     {
@@ -131,6 +134,43 @@ public class Interpreter : IExpressionVisitor<object?>, IStatementVisitor<object
         return expr.Expression.Accept(this);
     }
 
+    public object? VisitCallExpression(CallExpression expr)
+    {
+        // For now, assume callee is a function name (identifier)
+        if (expr.Callee is not IdentifierExpression identExpr)
+            throw new RuntimeException("Can only call functions", expr.Span);
+
+        if (!_functions.TryGetValue(identExpr.Name, out var function))
+            throw new RuntimeException($"Undefined function '{identExpr.Name}'", expr.Span);
+
+        if (expr.Arguments.Count != function.Parameters.Count)
+            throw new RuntimeException($"Expected {function.Parameters.Count} arguments but got {expr.Arguments.Count}", expr.Span);
+
+        // Evaluate arguments
+        var arguments = expr.Arguments.Select(arg => arg.Accept(this)).ToList();
+
+        // Create new environment for function
+        var functionEnv = new Environment(Environment);
+
+        // Bind parameters
+        for (var i = 0; i < function.Parameters.Count; i++)
+        {
+            functionEnv.Define(function.Parameters[i], arguments[i]);
+        }
+
+        // Execute function body
+        try
+        {
+            ExecuteBlock(function.Body, functionEnv);
+            return null; // No return statement
+        }
+        catch (ReturnValue returnValue)
+        {
+            return returnValue.Value;
+        }
+    }
+
+    // Statement visitors
     public object? VisitExpressionStatement(ExpressionStatement stmt)
     {
         stmt.Expression.Accept(this);
@@ -140,13 +180,76 @@ public class Interpreter : IExpressionVisitor<object?>, IStatementVisitor<object
     public object? VisitLetStatement(LetStatement stmt)
     {
         var value = stmt.Initializer.Accept(this);
-        _environment.Define(stmt.Name, value);
+        Environment.Define(stmt.Name, value);
         return null;
     }
 
     public object? VisitBlockStatement(BlockStatement stmt)
     {
-        ExecuteBlock(stmt.Statements, new Environment(_environment));
+        ExecuteBlock(stmt.Statements, new Environment(Environment));
+        return null;
+    }
+
+    public object? VisitIfStatement(IfStatement stmt)
+    {
+        var conditionValue = stmt.Condition.Accept(this);
+
+        if (IsTruthy(conditionValue))
+        {
+            stmt.ThenBranch.Accept(this);
+        }
+        else
+        {
+            stmt.ElseBranch?.Accept(this);
+        }
+
+        return null;
+    }
+
+    public object? VisitWhileStatement(WhileStatement stmt)
+    {
+        while (true)
+        {
+            var conditionValue = stmt.Condition.Accept(this);
+
+            if (!IsTruthy(conditionValue))
+                break;
+
+            stmt.Body.Accept(this);
+        }
+
+        return null;
+    }
+
+    public object? VisitReturnStatement(ReturnStatement stmt)
+    {
+        var result = stmt.Expression?.Accept(this);
+
+        // If we're in a function, throw the return value
+        throw new ReturnValue(result);
+    }
+
+    public object? VisitAssignmentStatement(AssignmentStatement stmt)
+    {
+        var value = stmt.Value.Accept(this);
+        Environment.Set(stmt.Name, value, stmt.Span);
+        return null;
+    }
+
+    public object? VisitFunctionStatement(FunctionStatement stmt)
+    {
+        _functions[stmt.Name] = stmt;
+        return null;
+    }
+
+    public object? VisitPrintStatement(PrintStatement statement)
+    {
+        var result = statement.Expression?.Accept(this);
+        if (result is not null)
+        {
+            _outputWriter.WriteLine(Stringify(result));
+        }
+
         return null;
     }
 
@@ -167,6 +270,15 @@ public class Interpreter : IExpressionVisitor<object?>, IStatementVisitor<object
 
         if (left is string leftStr && right is string rightStr)
             return leftStr + rightStr;
+
+        if (left is string sLeft && right is char cRight)
+            return sLeft + cRight;
+
+        if (left is char cLeft && right is string sRight)
+            return cLeft + sRight;
+
+        if (left is char cLeft2 && right is char cRight2)
+            return cLeft2.ToString() + cRight2.ToString();
 
         throw new RuntimeException($"Cannot add {GetTypeName(left)} and {GetTypeName(right)}", span);
     }
@@ -323,61 +435,11 @@ public class Interpreter : IExpressionVisitor<object?>, IStatementVisitor<object
         return left.Equals(right);
     }
 
-
-    public object VisitIfStatement(IfStatement stmt)
-    {
-        var conditionValue = stmt.Condition.Accept(this);
-
-        if (IsTruthy(conditionValue))
-        {
-            stmt.ThenBranch.Accept(this);
-        }
-        else
-        {
-            stmt.ElseBranch?.Accept(this);
-        }
-
-        return null!;
-    }
-
-    public object VisitWhileStatement(WhileStatement stmt)
-    {
-        while (true)
-        {
-            var conditionValue = stmt.Condition.Accept(this);
-
-            if (!IsTruthy(conditionValue))
-                break;
-
-            stmt.Body.Accept(this);
-        }
-
-        return null!;
-    }
     private bool IsTruthy(object? obj)
     {
         if (obj == null) return false;
         if (obj is bool boolean) return boolean;
         return true; // Everything else is truthy
-    }
-
-    private void ExecuteBlock(List<Statement> statements, Environment environment)
-    {
-        var previous = _environment;
-        try
-        {
-            // Use the new environment for this block
-            _environment = environment;
-            foreach (var statement in statements)
-            {
-                statement.Accept(this);
-            }
-        }
-        finally
-        {
-            // Restore previous environment
-            _environment = previous;
-        }
     }
 
     private static string GetTypeName(object? obj)
@@ -388,6 +450,7 @@ public class Interpreter : IExpressionVisitor<object?>, IStatementVisitor<object
             double => "Float",
             string => "String",
             bool => "Bool",
+            char => "Char",
             null => "null",
             _ => obj.GetType().Name
         };
@@ -406,76 +469,22 @@ public class Interpreter : IExpressionVisitor<object?>, IStatementVisitor<object
         return obj.ToString() ?? "null";
     }
 
-    public object? VisitCharacterLiteralExpression(CharacterLiteralExpression expression) => throw new NotImplementedException();
-
-    public object VisitReturnStatement(ReturnStatement stmt)
+    public void ExecuteBlock(List<Statement> statements, Environment environment)
     {
-        var result = stmt.Expression?.Accept(this);
-
-        // If we're in a function, throw the return value
-        throw new ReturnValue(result);
-    }
-
-    public object? VisitAssignmentStatement(AssignmentStatement stmt)
-    {
-        var value = stmt.Value.Accept(this);
-        _environment.Set(stmt.Name, value, stmt.Span);
-        return null;
-    }
-
-    public object? VisitFunctionStatement(FunctionStatement stmt)
-    {
-        _functions[stmt.Name] = stmt;
-        return null;
-    }
-
-    // Add this method to your Interpreter class:
-    public object? VisitCallExpression(CallExpression expr)
-    {
-        // For now, assume callee is a function name (identifier)
-        if (expr.Callee is not IdentifierExpression identExpr)
-            throw new RuntimeException("Can only call functions", expr.Span);
-
-        if (!_functions.TryGetValue(identExpr.Name, out var function))
-            throw new RuntimeException($"Undefined function '{identExpr.Name}'", expr.Span);
-
-        if (expr.Arguments.Count != function.Parameters.Count)
-            throw new RuntimeException($"Expected {function.Parameters.Count} arguments but got {expr.Arguments.Count}", expr.Span);
-
-        // Evaluate arguments
-        var arguments = expr.Arguments.Select(arg => arg.Accept(this)).ToList();
-
-        // Create new environment for function
-        var functionEnv = new Environment(_environment);
-
-        // Bind parameters
-        for (var i = 0; i < function.Parameters.Count; i++)
-        {
-            functionEnv.Define(function.Parameters[i], arguments[i]);
-        }
-
-        // Execute function body
+        var previous = Environment;
         try
         {
-            ExecuteBlock(function.Body, functionEnv);
-            return null; // No return statement
+            // Use the new environment for this block
+            Environment = environment;
+            foreach (var statement in statements)
+            {
+                statement.Accept(this);
+            }
         }
-        catch (ReturnValue returnValue)
+        finally
         {
-            return returnValue.Value;
+            // Restore previous environment
+            Environment = previous;
         }
     }
-
-    public object? VisitPrintStatement(PrintStatement statement)
-    {
-        var result = statement.Expression.Accept(this);
-        if (result is not null)
-        {
-            Console.WriteLine(result);
-        }
-
-        return null;
-    }
-
-
 }

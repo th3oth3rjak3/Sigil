@@ -1,4 +1,4 @@
-﻿namespace Sigil.Parsing.Statements;
+﻿﻿namespace Sigil.Parsing.Statements;
 
 public interface IStatementVisitor<T>
 {

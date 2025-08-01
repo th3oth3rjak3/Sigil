@@ -1,4 +1,4 @@
-﻿using Sigil.Common;
+﻿﻿using Sigil.Common;
 using Sigil.ErrorHandling;
 using Sigil.Lexing;
 using Sigil.Parsing.Expressions;
@@ -9,10 +9,12 @@ namespace Sigil.Parsing;
 public class Parser(List<Token> Tokens, ErrorHandler ErrorHandler, string SourceCode)
 {
     private int _current = 0;
+    private Stack<ExecutionContext> _contextStack = new([ExecutionContext.TopLevel]);
 
     private Token Peek() => _current >= Tokens.Count ? Tokens.Last() : Tokens[_current];
     private Token Previous() => Tokens[_current - 1];
     private bool IsAtEnd() => Peek().TokenType == TokenType.Eof;
+    private bool IsInFunction => _contextStack.Contains(ExecutionContext.Function);
 
     private Token Advance()
     {
@@ -88,11 +90,11 @@ public class Parser(List<Token> Tokens, ErrorHandler ErrorHandler, string Source
     {
         if (Match(TokenType.Let)) return ParseLetStatement();
         if (Match(TokenType.Return)) return ParseReturnStatement();
+        if (Match(TokenType.Print)) return ParsePrintStatement();
         if (Match(TokenType.Fun)) return ParseFunctionStatement();
         if (Match(TokenType.If)) return ParseIfStatement();
         if (Match(TokenType.While)) return ParseWhileStatement();
         if (Match(TokenType.LeftBrace)) return ParseBlockStatement();
-        if (Match(TokenType.Print)) return ParsePrintStatement();
 
         if (Check(TokenType.Identifier))
         {
@@ -178,6 +180,8 @@ public class Parser(List<Token> Tokens, ErrorHandler ErrorHandler, string Source
         return Some<Statement>(new AssignmentStatement(name, value, span));
     }
 
+
+
     private Option<Statement> ParseBlockStatement()
     {
         var start = Previous().Span.Start;
@@ -201,44 +205,52 @@ public class Parser(List<Token> Tokens, ErrorHandler ErrorHandler, string Source
         return Some<Statement>(new BlockStatement(statements, span));
     }
 
-    private Option<Statement> ParsePrintStatement()
-    {
-        var start = Previous().Span.Start;
-        var exprResult = ParseExpression();
-        if (exprResult.IsNone) return None<Statement>();
-
-        var expression = exprResult.Unwrap();
-        var semicolon = TryConsume(TokenType.Semicolon, "Expected ';' after print statement.");
-
-        var endPos = semicolon.Match(
-            some => some.Span.End,
-            () => expression.Span.End
-        );
-
-        var span = new Span(start, endPos);
-        return Some<Statement>(new PrintStatement(expression, span));
-    }
-
     private Option<Statement> ParseReturnStatement()
     {
         var start = Previous().Span.Start;
 
-        var exprResult = ParseExpression();
-        if (exprResult.IsNone) return None<Statement>();
+        Expression? expression = null;
+        if (!Check(TokenType.Semicolon))
+        {
+            var exprResult = ParseExpression();
+            if (exprResult.IsNone) return None<Statement>(); // Error parsing expression
+            expression = exprResult.Unwrap();
+        }
 
-        var expression = exprResult.Unwrap();
-        var semicolon = TryConsume(TokenType.Semicolon, "Expected ';' after return statement.");
+        var semicolon = TryConsume(TokenType.Semicolon, "Expected ';' after return value.");
 
         var endPos = semicolon.Match(
             some => some.Span.End,
-            () => expression.Span.End
+            () => expression?.Span.End ?? start
         );
 
         var span = new Span(start, endPos);
         return Some<Statement>(new ReturnStatement(expression, span));
     }
 
-    // Add to your Parser.cs:
+    private Option<Statement> ParsePrintStatement()
+    {
+        var start = Previous().Span.Start;
+
+        Expression? expression = null;
+        if (!Check(TokenType.Semicolon))
+        {
+            var exprResult = ParseExpression();
+            if (exprResult.IsNone) return None<Statement>(); // Error parsing expression
+            expression = exprResult.Unwrap();
+        }
+
+        var semicolon = TryConsume(TokenType.Semicolon, "Expected ';' after print statement.");
+
+        var endPos = semicolon.Match(
+            some => some.Span.End,
+            () => expression?.Span.End ?? start
+        );
+
+        var span = new Span(start, endPos);
+        return Some<Statement>(new PrintStatement(expression, span));
+    }
+
     private Option<Statement> ParseFunctionStatement()
     {
         var start = Previous().Span.Start;
@@ -268,11 +280,22 @@ public class Parser(List<Token> Tokens, ErrorHandler ErrorHandler, string Source
         if (!TryConsume(TokenType.LeftBrace, "Expected '{' before function body.").IsSome)
             return None<Statement>();
 
+        _contextStack.Push(ExecutionContext.Function);
+
         var body = new List<Statement>();
-        while (!Check(TokenType.RightBrace) && !IsAtEnd())
+
+        try
         {
-            var stmt = ParseStatement();
-            stmt.EffectSome(body.Add);
+            while (!Check(TokenType.RightBrace) && !IsAtEnd())
+            {
+                var stmt = ParseStatement();
+                stmt.EffectSome(body.Add);
+            }
+
+        }
+        finally
+        {
+            _contextStack.Pop();
         }
 
         var endBrace = TryConsume(TokenType.RightBrace, "Expected '}' after function body.");
@@ -550,6 +573,41 @@ public class Parser(List<Token> Tokens, ErrorHandler ErrorHandler, string Source
             // Remove quotes
             var stringValue = value[1..^1];
             return Some<Expression>(new StringLiteralExpression(stringValue, token.Span));
+        }
+
+        if (Match(TokenType.CharacterLiteral))
+        {
+            var token = Previous();
+            var valueText = token.Span.Slice(SourceCode);
+            var innerText = valueText[1..^1];
+
+            char finalChar;
+            if (innerText.StartsWith('\\'))
+            {
+                // The lexer should ensure this is a valid 2-character escape sequence
+                if (innerText.Length != 2)
+                {
+                    ErrorHandler.Report($"Malformed escape sequence in char literal: {valueText}", token.Span);
+                    return None<Expression>();
+                }
+                finalChar = innerText[1] switch
+                {
+                    '0' => '\0',
+                    'n' => '\n',
+                    'r' => '\r',
+                    't' => '\t',
+                    '\\' => '\\',
+                    '\'' => '\'',
+                    '"' => '"',
+                    _ => ' ' // Should be caught by lexer
+                };
+            }
+            else
+            {
+                // The lexer should ensure this is a single character
+                finalChar = innerText[0];
+            }
+            return Some<Expression>(new CharacterLiteralExpression(finalChar, token.Span));
         }
 
         if (Match(TokenType.Identifier))
