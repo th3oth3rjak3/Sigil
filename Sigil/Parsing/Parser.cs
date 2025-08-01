@@ -92,6 +92,7 @@ public class Parser(List<Token> Tokens, ErrorHandler ErrorHandler, string Source
         if (Match(TokenType.If)) return ParseIfStatement();
         if (Match(TokenType.While)) return ParseWhileStatement();
         if (Match(TokenType.LeftBrace)) return ParseBlockStatement();
+        if (Match(TokenType.Print)) return ParsePrintStatement();
 
         if (Check(TokenType.Identifier))
         {
@@ -188,6 +189,24 @@ public class Parser(List<Token> Tokens, ErrorHandler ErrorHandler, string Source
 
         var span = new Span(start, endPos);
         return Some<Statement>(new BlockStatement(statements, span));
+    }
+
+    private Option<Statement> ParsePrintStatement()
+    {
+        var start = Previous().Span.Start;
+        var exprResult = ParseExpression();
+        if (exprResult.IsNone) return None<Statement>();
+
+        var expression = exprResult.Unwrap();
+        var semicolon = TryConsume(TokenType.Semicolon, "Expected ';' after print statement.");
+
+        var endPos = semicolon.Match(
+            some => some.Span.End,
+            () => expression.Span.End
+        );
+
+        var span = new Span(start, endPos);
+        return Some<Statement>(new PrintStatement(expression, span));
     }
 
     private Option<Statement> ParseReturnStatement()

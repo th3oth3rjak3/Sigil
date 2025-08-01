@@ -19,6 +19,7 @@ public static class Keywords
         {"continue", TokenType.Continue },
         {"or", TokenType.Or },
         {"and", TokenType.And},
+        {"print", TokenType.Print}
     };
 
     public static Option<TokenType> FromString(string input)

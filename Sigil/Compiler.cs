@@ -1,5 +1,7 @@
 using Sigil.CodeGeneration;
 using Sigil.ErrorHandling;
+using Sigil.Lexing;
+using Sigil.Parsing;
 
 namespace Sigil;
 
@@ -7,12 +9,24 @@ public class Compiler(string SourceCode, ICompilerBackend Backend)
 {
     private ErrorHandler _errorHandler = new(SourceCode);
 
-
-
-    // TODO: this should return a "Program" or a "Statement List"
     public int Compile()
     {
-        // TODO: actually compile the code, then execute the AST
-        return Backend.Execute([]);
+        var lexer = new Lexer(SourceCode, _errorHandler);
+        var tokens = lexer.Tokenize();
+        var parser = new Parser(tokens, _errorHandler, SourceCode);
+        var ast = parser.Parse();
+
+        // Check if we had errors
+        if (_errorHandler.HadError)
+        {
+            foreach (var error in _errorHandler.Errors)
+            {
+                Console.WriteLine(error);
+            }
+
+            return 1;
+        }
+
+        return Backend.Execute(ast);
     }
 }

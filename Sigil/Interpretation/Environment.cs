@@ -19,17 +19,14 @@ public class Environment
 
     public void Define(string name, object? value)
     {
-        Console.WriteLine($"Defining variable: {name} = {value}");
         _values[name] = value;
     }
 
     public object? Get(string name, Span span)
     {
-        Console.WriteLine($"Looking up variable: {name}");
 
         if (_values.TryGetValue(name, out var value))
         {
-            Console.WriteLine($"Found: {name} = {value}");
             return value;
         }
 
@@ -38,7 +35,6 @@ public class Environment
             return _enclosing.Get(name, span);
         }
 
-        Console.WriteLine($"Variable not found: {name}");
         throw new RuntimeException($"Undefined variable '{name}'", span);
     }
 

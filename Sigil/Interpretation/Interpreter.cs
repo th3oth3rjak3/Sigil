@@ -1,12 +1,14 @@
+using Sigil.CodeGeneration;
 using Sigil.Common;
 using Sigil.ErrorHandling;
 using Sigil.Lexing;
+using Sigil.Parsing;
 using Sigil.Parsing.Expressions;
 using Sigil.Parsing.Statements;
 
 namespace Sigil.Interpretation;
 
-public class Interpreter : IExpressionVisitor<object?>, IStatementVisitor<object?>
+public class Interpreter : IExpressionVisitor<object?>, IStatementVisitor<object?>, ICompilerBackend
 {
     private readonly ErrorHandler _errorHandler;
     private readonly Dictionary<string, FunctionStatement> _functions = new();
@@ -14,10 +16,17 @@ public class Interpreter : IExpressionVisitor<object?>, IStatementVisitor<object
 
     private Environment _environment;
 
-    public Interpreter(ErrorHandler errorHandler)
+    public Interpreter(string SourceCode)
     {
-        _errorHandler = errorHandler;
+        // TODO: figure out how better to handle runtime errors.
+        _errorHandler = new ErrorHandler(SourceCode);
         _environment = new Environment();
+    }
+
+    public int Execute(List<Statement> nodes)
+    {
+        Interpret(nodes);
+        return 0;
     }
 
     public void Interpret(List<Statement> statements)
@@ -124,13 +133,10 @@ public class Interpreter : IExpressionVisitor<object?>, IStatementVisitor<object
 
     public object? VisitExpressionStatement(ExpressionStatement stmt)
     {
-        Console.WriteLine("Visiting expression statement");
         var result = stmt.Expression.Accept(this);
-        Console.WriteLine($"Expression result: {result}");
 
         // For REPL-like behavior, print the result
         var output = Stringify(result);
-        Console.WriteLine($"Stringified: {output}");
         Console.WriteLine(output); // This should be the actual output
 
         return result;
@@ -464,4 +470,17 @@ public class Interpreter : IExpressionVisitor<object?>, IStatementVisitor<object
             return returnValue.Value;
         }
     }
+
+    public object? VisitPrintStatement(PrintStatement statement)
+    {
+        var result = statement.Expression.Accept(this);
+        if (result is not null)
+        {
+            Console.WriteLine(result);
+        }
+
+        return null;
+    }
+
+
 }

@@ -3,6 +3,7 @@
 using CommandLine;
 
 using Sigil.CodeGeneration;
+using Sigil.Interpretation;
 using Sigil.ModuleImporting;
 
 namespace Sigil;
@@ -56,10 +57,10 @@ class Program
 
     private static void Run(string sourceCode)
     {
-        var backend = new TreeWalkingInterpreter();
+        var backend = new Interpreter(sourceCode);
         var compiler = new Compiler(sourceCode, backend);
         var exitCode = compiler.Compile();
-        Environment.Exit(exitCode);
+        System.Environment.Exit(exitCode);
     }
 
     private static int BuildNative(BuildOptions opts)
@@ -70,6 +71,7 @@ class Program
             return 1;
         }
 
+        // TODO: build the LLVM IR backend.
         var sourceCode = FileLoader.LoadSourceCode(opts.SourceFile);
         Console.WriteLine(sourceCode);
         return 0;

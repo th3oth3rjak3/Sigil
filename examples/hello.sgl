@@ -1,0 +1,5 @@
+fun say_hello() {
+    print "hello world!";
+}
+
+let result = say_hello();
