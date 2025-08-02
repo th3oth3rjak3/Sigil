@@ -3,5 +3,4 @@ fun add(a: Int, b: Int) -> Int {
 }
 
 let result: Int = add(1, 2);
-let string_result: String = string(result);
-println(string_result);
+println(result);
