@@ -3,7 +3,7 @@ fun add(a: Int, b: Int) -> Int {
 }
 
 
-/// Do thing
+// Do thing
 fun do_work() -> Int {
     let i: Int = 0;
     let result: Int = 0;

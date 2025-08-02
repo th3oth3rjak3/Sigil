@@ -509,4 +509,9 @@ public class Interpreter : IExpressionVisitor<object?>, IStatementVisitor<object
     {
         throw new NotImplementedException();
     }
+
+    public object? VisitDocStringStatement(DocStringStatement statement)
+    {
+        return null;
+    }
 }

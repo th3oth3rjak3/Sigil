@@ -354,4 +354,9 @@ public class AstPrintingVisitor : IStatementVisitor<string>, IExpressionVisitor<
         }
         return 0;
     }
+
+    public string VisitDocStringStatement(DocStringStatement statement)
+    {
+        throw new NotImplementedException();
+    }
 }

@@ -11,4 +11,5 @@ public interface IStatementVisitor<T>
     public T VisitAssignmentStatement(AssignmentStatement statement);
     public T VisitFunctionStatement(FunctionStatement statement);
     public T VisitClassStatement(ClassStatement statement);
+    public T VisitDocStringStatement(DocStringStatement statement);
 }

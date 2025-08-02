@@ -556,4 +556,9 @@ public class TypeCheckingVisitor : IStatementVisitor<Type>, IExpressionVisitor<T
             statement.Accept(this);
         }
     }
+
+    public Type VisitDocStringStatement(DocStringStatement statement)
+    {
+        throw new NotImplementedException();
+    }
 }

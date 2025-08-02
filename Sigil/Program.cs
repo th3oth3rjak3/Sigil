@@ -33,15 +33,23 @@ class Program
         public string? SourceFile { get; set; }
     }
 
+    [Verb("typecheck", HelpText = "Parse the source code and print the typed AST")]
+    public class TypeCheckOptions
+    {
+        [Option('f', "file", Required = true, HelpText = "The main source file")]
+        public string? SourceFile { get; set; }
+    }
+
     public static int Main(string[] args)
     {
         return Parser
         .Default
-        .ParseArguments<RunOptions, BuildOptions, ParseOptions>(args)
+        .ParseArguments<RunOptions, BuildOptions, ParseOptions, TypeCheckOptions>(args)
         .MapResult(
             (RunOptions opts) => RunFile(opts),
             (BuildOptions opts) => BuildNative(opts),
             (ParseOptions opts) => ParseFile(opts),
+            (TypeCheckOptions opts) => TypeCheckFile(opts),
             errs => 1);
     }
 
@@ -98,5 +106,29 @@ class Program
 
         var compiler = new Compiler(sourceCode, new AstPrintingVisitor());
         return compiler.Compile();
+    }
+
+    private static int TypeCheckFile(TypeCheckOptions opts)
+    {
+        if (opts.SourceFile is null)
+        {
+            Console.WriteLine("Source file is required.");
+            return 1;
+        }
+
+        var sourceCode = FileLoader.LoadSourceCode(opts.SourceFile);
+
+        var errorHandler = new ErrorHandler(sourceCode);
+        var compiler = new Compiler(sourceCode, new TypeCheckedAstPrintingVisitor(errorHandler));
+        var exitCode = compiler.Compile();
+        if (errorHandler.HadError)
+        {
+            foreach (var error in errorHandler.Errors)
+            {
+                Console.WriteLine(error);
+            }
+        }
+
+        return exitCode;
     }
 }
