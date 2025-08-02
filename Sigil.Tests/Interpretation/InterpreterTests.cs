@@ -46,7 +46,7 @@ public class InterpreterTests
     [Fact]
     public void Interpreter_ShouldEvaluateSimpleArithmetic()
     {
-        var source = "print 1 + 2 * 3;"; // Should print: 7
+        var source = "print(1 + 2 * 3);"; // Should print: 7
         var result = RunAndCapture(source);
         Console.WriteLine(result);
         Assert.Equal("7", result);
@@ -58,7 +58,7 @@ public class InterpreterTests
         var source = """
         let x = 10;
         let y = 20;
-        print x + y;
+        print(x + y);
         """;
         var result = RunAndCapture(source);
         Assert.Equal("30", result);
@@ -79,7 +79,7 @@ public class InterpreterTests
         var source = """
         let x = 5;
         if x > 3 {
-            print 42;
+            print(42);
         }
         """;
         var result = RunAndCapture(source);
@@ -92,9 +92,9 @@ public class InterpreterTests
         var source = """
         let x = 1;
         if x > 3 {
-            print 42;
+            print(42);
         } else {
-            print 99;
+            print(99);
         }
         """;
         var result = RunAndCapture(source);
@@ -111,7 +111,7 @@ public class InterpreterTests
             sum = sum + i;
             i = i + 1;
         }
-        print sum;
+        print(sum);
         """;
         var result = RunAndCapture(source);
         Assert.Equal("3", result); // 0 + 1 + 2 = 3
@@ -208,7 +208,7 @@ public class InterpreterTests
         let space = ' ';
         let world = "world";
         let exclam = '!';
-        print greeting + space + world + exclam;
+        print(greeting + space + world + exclam);
         """;
         var result = RunAndCapture(source);
         Assert.Equal("hello world!", result);
@@ -239,7 +239,7 @@ public class InterpreterTests
             }
             return fib(n - 1) + fib(n - 2);
         }
-        print fib({{n}});
+        print(fib({{n}}));
         """;
 
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();

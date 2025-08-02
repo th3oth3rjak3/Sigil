@@ -10,5 +10,4 @@ public interface IStatementVisitor<T>
     public T VisitWhileStatement(WhileStatement statement);
     public T VisitAssignmentStatement(AssignmentStatement statement);
     public T VisitFunctionStatement(FunctionStatement statement);
-    public T VisitPrintStatement(PrintStatement statement);
 }

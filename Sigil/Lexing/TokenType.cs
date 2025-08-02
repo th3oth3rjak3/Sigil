@@ -73,7 +73,4 @@ public enum TokenType
 
     // Errors
     Invalid,
-
-    // Temporary Helpers
-    Print,
 }

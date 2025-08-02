@@ -562,19 +562,19 @@ let x = 5;
     }
 
     [Theory]
-    [InlineData("'a'", "a")]
-    [InlineData("'0'", "0")]
-    [InlineData("'*'", "*")]
-    [InlineData("' '", " ")]
-    [InlineData("'\n'", "\n")]
-    [InlineData("'\\0'", "\0")]
-    [InlineData("'\\n'", "\n")]
-    [InlineData("'\\r'", "\r")]
-    [InlineData("'\\t'", "\t")]
-    [InlineData("'\\\\'", "\\")]
-    [InlineData("'\\''", "'")]
-    [InlineData("'\\\"'", "\"")]
-    public void TheLexer_ShouldLexCharacterLiterals_WhenValid(string input, string expectedValue)
+    [InlineData("'a'")]
+    [InlineData("'0'")]
+    [InlineData("'*'")]
+    [InlineData("' '")]
+    [InlineData("'\n'")]
+    [InlineData("'\\0'")]
+    [InlineData("'\\n'")]
+    [InlineData("'\\r'")]
+    [InlineData("'\\t'")]
+    [InlineData("'\\\\'")]
+    [InlineData("'\\''")]
+    [InlineData("'\\\"'")]
+    public void TheLexer_ShouldLexCharacterLiterals_WhenValid(string input)
     {
         var errorHandler = new ErrorHandler(input);
         var lexer = new Lexer(input, errorHandler);

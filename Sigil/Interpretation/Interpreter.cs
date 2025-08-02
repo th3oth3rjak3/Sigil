@@ -1,7 +1,9 @@
 using Sigil.CodeGeneration;
 using Sigil.Common;
 using Sigil.ErrorHandling;
+using Sigil.Interpretation.Builtins;
 using Sigil.Lexing;
+using Sigil.Parsing;
 using Sigil.Parsing.Expressions;
 using Sigil.Parsing.Statements;
 
@@ -12,15 +14,22 @@ public class Interpreter : IExpressionVisitor<object?>, IStatementVisitor<object
     public ErrorHandler ErrorHandler { get; set; }
     public Environment Environment { get; private set; }
 
-    private readonly Dictionary<string, FunctionStatement> _functions = new();
-    private TextWriter _outputWriter;
+    private readonly Dictionary<string, FunctionStatement> _functions = [];
+    private readonly Dictionary<string, ICallable> _builtins = [];
+    public TextWriter OutputWriter;
 
     public Interpreter(string SourceCode, TextWriter? outputWriter = null)
     {
-        // TODO: figure out how better to handle runtime errors.
         ErrorHandler = new ErrorHandler(SourceCode);
         Environment = new Environment();
-        _outputWriter = outputWriter ?? Console.Out;
+        OutputWriter = outputWriter ?? Console.Out;
+
+        RegisterBuiltin(new PrintBuiltin());
+    }
+
+    public void RegisterBuiltin(ICallable builtin)
+    {
+        _builtins[builtin.Name] = builtin;
     }
 
     public int Execute(List<Statement> nodes)
@@ -41,7 +50,7 @@ public class Interpreter : IExpressionVisitor<object?>, IStatementVisitor<object
         catch (ReturnValue returnValue)
         {
             // Handle return at top-level - print the value
-            _outputWriter.WriteLine(Stringify(returnValue.Value));
+            OutputWriter.WriteLine(Stringify(returnValue.Value));
         }
         catch (RuntimeException ex)
         {
@@ -139,6 +148,21 @@ public class Interpreter : IExpressionVisitor<object?>, IStatementVisitor<object
         // For now, assume callee is a function name (identifier)
         if (expr.Callee is not IdentifierExpression identExpr)
             throw new RuntimeException("Can only call functions", expr.Span);
+
+
+        var name = identExpr.Name;
+
+        if (_builtins.TryGetValue(name, out var builtin))
+        {
+            if (expr.Arguments.Count != builtin.Arity)
+                throw new RuntimeException(
+                    $"Builtin '{name}' expects {builtin.Arity} argument(s), got {expr.Arguments.Count}",
+                    expr.Span
+                );
+
+            var args = expr.Arguments.Select(arg => arg.Accept(this)).ToList();
+            return builtin.Call(this, args, expr.Span);
+        }
 
         if (!_functions.TryGetValue(identExpr.Name, out var function))
             throw new RuntimeException($"Undefined function '{identExpr.Name}'", expr.Span);
@@ -239,17 +263,6 @@ public class Interpreter : IExpressionVisitor<object?>, IStatementVisitor<object
     public object? VisitFunctionStatement(FunctionStatement stmt)
     {
         _functions[stmt.Name] = stmt;
-        return null;
-    }
-
-    public object? VisitPrintStatement(PrintStatement statement)
-    {
-        var result = statement.Expression?.Accept(this);
-        if (result is not null)
-        {
-            _outputWriter.WriteLine(Stringify(result));
-        }
-
         return null;
     }
 

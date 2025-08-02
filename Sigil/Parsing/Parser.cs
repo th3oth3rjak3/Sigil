@@ -90,7 +90,6 @@ public class Parser(List<Token> Tokens, ErrorHandler ErrorHandler, string Source
     {
         if (Match(TokenType.Let)) return ParseLetStatement();
         if (Match(TokenType.Return)) return ParseReturnStatement();
-        if (Match(TokenType.Print)) return ParsePrintStatement();
         if (Match(TokenType.Fun)) return ParseFunctionStatement();
         if (Match(TokenType.If)) return ParseIfStatement();
         if (Match(TokenType.While)) return ParseWhileStatement();
@@ -228,29 +227,6 @@ public class Parser(List<Token> Tokens, ErrorHandler ErrorHandler, string Source
         return Some<Statement>(new ReturnStatement(expression, span));
     }
 
-    private Option<Statement> ParsePrintStatement()
-    {
-        var start = Previous().Span.Start;
-
-        Expression? expression = null;
-        if (!Check(TokenType.Semicolon))
-        {
-            var exprResult = ParseExpression();
-            if (exprResult.IsNone) return None<Statement>(); // Error parsing expression
-            expression = exprResult.Unwrap();
-        }
-
-        var semicolon = TryConsume(TokenType.Semicolon, "Expected ';' after print statement.");
-
-        var endPos = semicolon.Match(
-            some => some.Span.End,
-            () => expression?.Span.End ?? start
-        );
-
-        var span = new Span(start, endPos);
-        return Some<Statement>(new PrintStatement(expression, span));
-    }
-
     private Option<Statement> ParseFunctionStatement()
     {
         var start = Previous().Span.Start;
@@ -359,153 +335,43 @@ public class Parser(List<Token> Tokens, ErrorHandler ErrorHandler, string Source
     {
         var expr = ParseLogicalAnd();
         if (expr.IsNone) return None<Expression>();
-
-        var result = expr.Unwrap();
-
-        while (Match(TokenType.Or)) // ||
-        {
-            var op = Previous();
-            var rightResult = ParseLogicalAnd();
-            if (rightResult.IsNone)
-            {
-                ErrorHandler.Report("Expected expression after operator.", op.Span);
-                return Some(result);
-            }
-
-            var right = rightResult.Unwrap();
-            var span = new Span(result.Span.Start, right.Span.End);
-            result = new BinaryExpression(result, op, right, span);
-        }
-
-        return Some(result);
+        return ParseBinary(expr.Unwrap(), ParseLogicalAnd, TokenType.Or);
     }
-
-    // Add this method to your Parser.cs:
 
     private Option<Expression> ParseLogicalAnd()
     {
         var expr = ParseEquality();
         if (expr.IsNone) return None<Expression>();
-
-        var result = expr.Unwrap();
-
-        while (Match(TokenType.And)) // &&
-        {
-            var op = Previous();
-            var rightResult = ParseEquality();
-            if (rightResult.IsNone)
-            {
-                ErrorHandler.Report("Expected expression after operator.", op.Span);
-                return Some(result);
-            }
-
-            var right = rightResult.Unwrap();
-            var span = new Span(result.Span.Start, right.Span.End);
-            result = new BinaryExpression(result, op, right, span);
-        }
-
-        return Some(result);
+        return ParseBinary(expr.Unwrap(), ParseEquality, TokenType.And);
     }
 
     private Option<Expression> ParseEquality()
     {
-        var exprResult = ParseComparison();
-        if (exprResult.IsNone) return None<Expression>();
-
-        var expr = exprResult.Unwrap();
-
-        while (Match(TokenType.BangEqual, TokenType.EqualEqual))
-        {
-            var op = Previous();
-            var rightResult = ParseComparison();
-            if (rightResult.IsNone)
-            {
-                // Error recovery: return what we have so far
-                ErrorHandler.Report("Expected expression after operator.", op.Span);
-                return Some(expr);
-            }
-
-            var right = rightResult.Unwrap();
-            var span = new Span(expr.Span.Start, right.Span.End);
-            expr = new BinaryExpression(expr, op, right, span);
-        }
-
-        return Some(expr);
+        var expr = ParseComparison();
+        if (expr.IsNone) return None<Expression>();
+        return ParseBinary(expr.Unwrap(), ParseComparison, TokenType.BangEqual, TokenType.EqualEqual);
     }
 
     private Option<Expression> ParseComparison()
     {
-        var exprResult = ParseTerm();
-        if (exprResult.IsNone) return None<Expression>();
-
-        var expr = exprResult.Unwrap();
-
-        while (Match(TokenType.Greater, TokenType.GreaterEqual, TokenType.Less, TokenType.LessEqual))
-        {
-            var op = Previous();
-            var rightResult = ParseTerm();
-            if (rightResult.IsNone)
-            {
-                ErrorHandler.Report("Expected expression after operator.", op.Span);
-                return Some(expr);
-            }
-
-            var right = rightResult.Unwrap();
-            var span = new Span(expr.Span.Start, right.Span.End);
-            expr = new BinaryExpression(expr, op, right, span);
-        }
-
-        return Some(expr);
+        var expr = ParseTerm();
+        if (expr.IsNone) return None<Expression>();
+        return ParseBinary(expr.Unwrap(), ParseTerm,
+            TokenType.Greater, TokenType.GreaterEqual, TokenType.Less, TokenType.LessEqual);
     }
 
     private Option<Expression> ParseTerm()
     {
-        var exprResult = ParseFactor();
-        if (exprResult.IsNone) return None<Expression>();
-
-        var expr = exprResult.Unwrap();
-
-        while (Match(TokenType.Minus, TokenType.Plus))
-        {
-            var op = Previous();
-            var rightResult = ParseFactor();
-            if (rightResult.IsNone)
-            {
-                ErrorHandler.Report("Expected expression after operator.", op.Span);
-                return Some(expr);
-            }
-
-            var right = rightResult.Unwrap();
-            var span = new Span(expr.Span.Start, right.Span.End);
-            expr = new BinaryExpression(expr, op, right, span);
-        }
-
-        return Some(expr);
+        var expr = ParseFactor();
+        if (expr.IsNone) return None<Expression>();
+        return ParseBinary(expr.Unwrap(), ParseFactor, TokenType.Minus, TokenType.Plus);
     }
 
     private Option<Expression> ParseFactor()
     {
-        var exprResult = ParseUnary();
-        if (exprResult.IsNone) return None<Expression>();
-
-        var expr = exprResult.Unwrap();
-
-        while (Match(TokenType.Slash, TokenType.Star))
-        {
-            var op = Previous();
-            var rightResult = ParseUnary();
-            if (rightResult.IsNone)
-            {
-                ErrorHandler.Report("Expected expression after operator.", op.Span);
-                return Some(expr);
-            }
-
-            var right = rightResult.Unwrap();
-            var span = new Span(expr.Span.Start, right.Span.End);
-            expr = new BinaryExpression(expr, op, right, span);
-        }
-
-        return Some(expr);
+        var expr = ParseUnary();
+        if (expr.IsNone) return None<Expression>();
+        return ParseBinary(expr.Unwrap(), ParseUnary, TokenType.Slash, TokenType.Star);
     }
 
     private Option<Expression> ParseUnary()
@@ -525,7 +391,76 @@ public class Parser(List<Token> Tokens, ErrorHandler ErrorHandler, string Source
             return Some<Expression>(new UnaryExpression(op, right, span));
         }
 
-        return ParsePrimary();
+        return ParseCall();
+    }
+
+    private Option<Expression> ParseCall()
+    {
+        var expr = ParsePrimary();
+        if (expr.IsNone) return None<Expression>();
+
+        while (true)
+        {
+            if (Match(TokenType.LeftParen))
+            {
+                expr = FinishCall(expr.Unwrap());
+                if (expr.IsNone) return None<Expression>();
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        return expr;
+    }
+    private Option<Expression> FinishCall(Expression callee)
+    {
+        var arguments = new List<Expression>();
+        var start = Previous().Span.Start;
+
+        if (!Check(TokenType.RightParen))
+        {
+            do
+            {
+                if (arguments.Count >= 255)
+                {
+                    ErrorHandler.Report("Cannot have more than 255 arguments.", Peek().Span);
+                }
+
+                var arg = ParseExpression();
+                if (arg.IsNone) return None<Expression>();
+                arguments.Add(arg.Unwrap());
+            } while (Match(TokenType.Comma));
+        }
+
+        var paren = TryConsume(TokenType.RightParen, "Expected ')' after arguments.");
+        var endPos = paren.Match(some => some.Span.End, () => start);
+        var span = new Span(callee.Span.Start, endPos);
+
+        return Some<Expression>(new CallExpression(callee, arguments, span));
+    }
+
+    private Option<Expression> ParseBinary(Expression left, Func<Option<Expression>> operandParser, params TokenType[] operators)
+    {
+        var expr = left;
+
+        while (Match(operators))
+        {
+            var op = Previous();
+            var rightResult = operandParser();
+            if (rightResult.IsNone)
+            {
+                ErrorHandler.Report("Expected expression after operator.", op.Span);
+                return Some(expr);
+            }
+
+            var right = rightResult.Unwrap();
+            var span = new Span(expr.Span.Start, right.Span.End);
+            expr = new BinaryExpression(expr, op, right, span);
+        }
+
+        return Some(expr);
     }
 
     private Option<Expression> ParsePrimary()
