@@ -18,13 +18,17 @@ public class Interpreter : IExpressionVisitor<object?>, IStatementVisitor<object
     private readonly Dictionary<string, ICallable> _builtins = [];
     public TextWriter OutputWriter;
 
+    private readonly ICallable[] _registeredBuiltins = [new PrintBuiltin(), new PrintlnBuiltin()];
+
     public Interpreter(string SourceCode, TextWriter? outputWriter = null)
     {
         ErrorHandler = new ErrorHandler(SourceCode);
         Environment = new Environment();
         OutputWriter = outputWriter ?? Console.Out;
 
-        RegisterBuiltin(new PrintBuiltin());
+        _registeredBuiltins
+        .ToList()
+        .ForEach(RegisterBuiltin);
     }
 
     public void RegisterBuiltin(ICallable builtin)

@@ -1,5 +1,5 @@
 fun say_hello() {
-    print "hello world!";
+    println("hello world!");
 }
 
 say_hello();

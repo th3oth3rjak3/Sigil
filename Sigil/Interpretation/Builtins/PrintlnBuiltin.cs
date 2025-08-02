@@ -3,15 +3,15 @@ using Sigil.Parsing;
 
 namespace Sigil.Interpretation.Builtins;
 
-public class PrintBuiltin : ICallable
+public class PrintlnBuiltin : ICallable
 {
-    public string Name => "print";
+    public string Name => "println";
 
     public int Arity => 1;
 
     public object? Call(Interpreter interpreter, List<object?> arguments, Span span)
     {
-        interpreter.OutputWriter.Write(arguments[0]);
+        interpreter.OutputWriter.WriteLine(arguments[0]);
         return null;
     }
 }
