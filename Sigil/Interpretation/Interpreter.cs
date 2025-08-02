@@ -158,7 +158,7 @@ public class Interpreter : IExpressionVisitor<object?>, IStatementVisitor<object
 
         if (_builtins.TryGetValue(name, out var builtin))
         {
-            if (expr.Arguments.Count != builtin.Arity)
+            if (builtin.Arity >= 0 && expr.Arguments.Count != builtin.Arity)
                 throw new RuntimeException(
                     $"Builtin '{name}' expects {builtin.Arity} argument(s), got {expr.Arguments.Count}",
                     expr.Span

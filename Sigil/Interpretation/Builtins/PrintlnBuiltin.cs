@@ -7,11 +7,12 @@ public class PrintlnBuiltin : ICallable
 {
     public string Name => "println";
 
-    public int Arity => 1;
+    public int Arity => -1;
 
     public object? Call(Interpreter interpreter, List<object?> arguments, Span span)
     {
-        interpreter.OutputWriter.WriteLine(arguments[0]);
+        var outputText = string.Join("", arguments);
+        interpreter.OutputWriter.WriteLine(outputText);
         return null;
     }
 }

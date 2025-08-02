@@ -1,0 +1,17 @@
+fun add(a, b) {
+    return a + b;
+}
+
+fun do_work() {
+    let i = 0;
+    let result = 0;
+    while (i < 10) {
+        result = add(result, i);
+        i = i + 1;
+    }
+
+    return result;
+}
+
+
+println("Result: ", do_work());

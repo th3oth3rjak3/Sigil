@@ -3,3 +3,6 @@ fun say_hello() {
 }
 
 say_hello();
+println();
+println();
+println("hello ", "world", "!");
