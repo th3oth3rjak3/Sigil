@@ -1,0 +1,22 @@
+class Point {
+    let x: Int;
+    let y: Int;
+
+    fun new(x: Int, y: Int) {
+        this.x = x;
+        this.y = y;
+    }
+
+    fun distance() -> Int {
+        let diff = x - y;
+        if (diff < 0) {
+            return -diff;
+        } else {
+            return diff;
+        }
+    }
+}
+
+
+let myPoint = Point(1, 2);
+print(myPoint.distance()); // Should be 1;

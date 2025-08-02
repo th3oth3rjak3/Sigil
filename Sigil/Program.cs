@@ -1,9 +1,10 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 
 using CommandLine;
-
-using Sigil.CodeGeneration;
+using Sigil.Debugging;
+using Sigil.ErrorHandling;
 using Sigil.Interpretation;
+using Sigil.Lexing;
 using Sigil.ModuleImporting;
 
 namespace Sigil;
@@ -25,14 +26,22 @@ class Program
         public string? SourceFile { get; set; }
     }
 
+    [Verb("parse", HelpText = "Parse the source code and print the untyped AST")]
+    public class ParseOptions
+    {
+        [Option('f', "file", Required = true, HelpText = "The main source file")]
+        public string? SourceFile { get; set; }
+    }
+
     public static int Main(string[] args)
     {
         return Parser
         .Default
-        .ParseArguments<RunOptions, BuildOptions>(args)
+        .ParseArguments<RunOptions, BuildOptions, ParseOptions>(args)
         .MapResult(
             (RunOptions opts) => RunFile(opts),
             (BuildOptions opts) => BuildNative(opts),
+            (ParseOptions opts) => ParseFile(opts),
             errs => 1);
     }
 
@@ -75,5 +84,19 @@ class Program
         var sourceCode = FileLoader.LoadSourceCode(opts.SourceFile);
         Console.WriteLine(sourceCode);
         return 0;
+    }
+
+    private static int ParseFile(ParseOptions opts)
+    {
+        if (opts.SourceFile is null)
+        {
+            Console.WriteLine("Source file is required.");
+            return 1;
+        }
+
+        var sourceCode = FileLoader.LoadSourceCode(opts.SourceFile);
+
+        var compiler = new Compiler(sourceCode, new AstPrintingVisitor());
+        return compiler.Compile();
     }
 }

@@ -504,4 +504,9 @@ public class Interpreter : IExpressionVisitor<object?>, IStatementVisitor<object
             Environment = previous;
         }
     }
+
+    public object? VisitClassStatement(ClassStatement statement)
+    {
+        throw new NotImplementedException();
+    }
 }
