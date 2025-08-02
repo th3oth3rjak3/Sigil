@@ -41,7 +41,7 @@ public record VoidType : Type
     public override string ToString() => "Void";
 }
 
-public record FunctionType(List<Type> ParameterTypes, Type ReturnType) : Type
+public record FunctionType(List<Type> ParameterTypes, Type ReturnType, bool IsVariadic = false) : Type
 {
     public override string ToString() => "Function";
 }
@@ -103,8 +103,8 @@ public class TypeCheckingVisitor : IStatementVisitor<Type>, IExpressionVisitor<T
     // Helper method to get built-in function types
     private FunctionType? GetBuiltInFunction(string name) => name switch
     {
-        "println" => new FunctionType(new List<Type> { new StringType() }, new VoidType()),
-        "print" => new FunctionType(new List<Type> { new StringType() }, new VoidType()),
+        "println" => new FunctionType(new List<Type> { new StringType() }, new VoidType(), true),
+        "print" => new FunctionType(new List<Type> { new StringType() }, new VoidType(), true),
         "string" => new FunctionType(new List<Type>() { new AnyType() }, new StringType()),
         _ => null
     };
@@ -239,8 +239,10 @@ public class TypeCheckingVisitor : IStatementVisitor<Type>, IExpressionVisitor<T
                 var builtInFunc = GetBuiltInFunction(id.Name);
                 if (builtInFunc != null)
                 {
+
+
                     // Check argument count
-                    if (expression.Arguments.Count != builtInFunc.ParameterTypes.Count)
+                    if (expression.Arguments.Count != builtInFunc.ParameterTypes.Count && !builtInFunc.IsVariadic)
                     {
                         return ReportError($"Function '{id.Name}' expects {builtInFunc.ParameterTypes.Count} arguments but got {expression.Arguments.Count}", expression);
                     }
@@ -256,7 +258,7 @@ public class TypeCheckingVisitor : IStatementVisitor<Type>, IExpressionVisitor<T
                             return argType; // Propagate the error from the argument
                         }
 
-                        var expectedType = builtInFunc.ParameterTypes[i];
+                        var expectedType = builtInFunc.IsVariadic ? builtInFunc.ParameterTypes[0] : builtInFunc.ParameterTypes[i];
 
                         if (!TypesMatch(argType, expectedType))
                         {

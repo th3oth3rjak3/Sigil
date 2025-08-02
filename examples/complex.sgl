@@ -17,4 +17,4 @@ fun do_work() -> Int {
 }
 
 
-println("Result: ", do_work());
+println("Result: ", string(do_work()));
