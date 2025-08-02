@@ -18,7 +18,7 @@ public class Interpreter : IExpressionVisitor<object?>, IStatementVisitor<object
     private readonly Dictionary<string, ICallable> _builtins = [];
     public TextWriter OutputWriter;
 
-    private readonly ICallable[] _registeredBuiltins = [new PrintBuiltin(), new PrintlnBuiltin()];
+    private readonly ICallable[] _registeredBuiltins = [new PrintBuiltin(), new PrintlnBuiltin(), new StringBuiltin()];
 
     public Interpreter(string SourceCode, TextWriter? outputWriter = null)
     {
@@ -183,7 +183,7 @@ public class Interpreter : IExpressionVisitor<object?>, IStatementVisitor<object
         // Bind parameters
         for (var i = 0; i < function.Parameters.Count; i++)
         {
-            functionEnv.Define(function.Parameters[i], arguments[i]);
+            functionEnv.Define(function.Parameters[i].Name, arguments[i]);
         }
 
         // Execute function body

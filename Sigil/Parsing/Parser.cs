@@ -121,27 +121,30 @@ public class Parser(List<Token> Tokens, ErrorHandler ErrorHandler, string Source
 
         var nameToken = TryConsume(TokenType.Identifier, "Expected variable name.");
         if (nameToken.IsNone) return None<Statement>();
-
         var name = nameToken.Unwrap().Span.Slice(SourceCode);
 
-        // Require the '=' token
+        // Parse optional type annotation
+        string? typeName = null;
+        if (Match(TokenType.Colon))
+        {
+            var typeToken = TryConsume(TokenType.Identifier, "Expected type name.");
+            if (typeToken.IsNone) return None<Statement>();
+            typeName = typeToken.Unwrap().Span.Slice(SourceCode);
+        }
+
         if (!TryConsume(TokenType.Equal, "Expected '=' after variable name.").IsSome)
             return None<Statement>();
 
-        // Require an initializer expression
-        var initExpr = ParseExpression();
-        if (initExpr.IsNone) return None<Statement>();
+        var initializer = ParseExpression();
+        if (initializer.IsNone) return None<Statement>();
 
-        var initializer = initExpr.Unwrap();
+        if (!TryConsume(TokenType.Semicolon, "Expected ';' after variable declaration.").IsSome)
+            return None<Statement>();
 
-        var semicolon = TryConsume(TokenType.Semicolon, "Expected ';' after variable declaration.");
-        var endPos = semicolon.Match(
-            some => some.Span.End,
-            () => initializer.Span.End
-        );
-
+        var endPos = Previous().Span.End;
         var span = new Span(start, endPos);
-        return Some<Statement>(new LetStatement(name, initializer, span));
+
+        return Some<Statement>(new LetStatement(name, typeName, initializer.Unwrap(), span));
     }
 
     private Option<Statement> TryParseAssignmentStatement()
@@ -231,35 +234,59 @@ public class Parser(List<Token> Tokens, ErrorHandler ErrorHandler, string Source
     {
         var start = Previous().Span.Start;
 
+        // Parse function name
         var nameToken = TryConsume(TokenType.Identifier, "Expected function name.");
         if (nameToken.IsNone) return None<Statement>();
-
         var name = nameToken.Unwrap().Span.Slice(SourceCode);
 
+        // Parse opening parenthesis
         if (!TryConsume(TokenType.LeftParen, "Expected '(' after function name.").IsSome)
             return None<Statement>();
 
-        var parameters = new List<string>();
+        // Parse parameters with type annotations
+        var parameters = new List<Parameter>();
         if (!Check(TokenType.RightParen))
         {
             do
             {
+                // Parse parameter name
                 var paramToken = TryConsume(TokenType.Identifier, "Expected parameter name.");
                 if (paramToken.IsNone) return None<Statement>();
-                parameters.Add(paramToken.Unwrap().Span.Slice(SourceCode));
+                var paramName = paramToken.Unwrap().Span.Slice(SourceCode);
+
+                // Parse colon
+                if (!TryConsume(TokenType.Colon, "Expected ':' after parameter name.").IsSome)
+                    return None<Statement>();
+
+                // Parse parameter type
+                var typeToken = TryConsume(TokenType.Identifier, "Expected parameter type.");
+                if (typeToken.IsNone) return None<Statement>();
+                var typeName = typeToken.Unwrap().Span.Slice(SourceCode);
+
+                parameters.Add(new Parameter(paramName, typeName));
+
             } while (Match(TokenType.Comma));
         }
 
+        // Parse closing parenthesis
         if (!TryConsume(TokenType.RightParen, "Expected ')' after parameters.").IsSome)
             return None<Statement>();
 
+        // Parse mandatory return type annotation
+        if (!TryConsume(TokenType.Arrow, "Expected '->' after parameters.").IsSome)
+            return None<Statement>();
+
+        var returnTypeToken = TryConsume(TokenType.Identifier, "Expected return type after '->'.");
+        if (returnTypeToken.IsNone) return None<Statement>();
+        var returnType = returnTypeToken.Unwrap().Span.Slice(SourceCode);
+
+        // Parse opening brace for function body
         if (!TryConsume(TokenType.LeftBrace, "Expected '{' before function body.").IsSome)
             return None<Statement>();
 
+        // Parse function body statements
         _contextStack.Push(ExecutionContext.Function);
-
         var body = new List<Statement>();
-
         try
         {
             while (!Check(TokenType.RightBrace) && !IsAtEnd())
@@ -267,18 +294,18 @@ public class Parser(List<Token> Tokens, ErrorHandler ErrorHandler, string Source
                 var stmt = ParseStatement();
                 stmt.EffectSome(body.Add);
             }
-
         }
         finally
         {
             _contextStack.Pop();
         }
 
+        // Parse closing brace
         var endBrace = TryConsume(TokenType.RightBrace, "Expected '}' after function body.");
         var endPos = endBrace.Match(some => some.Span.End, () => start);
-
         var span = new Span(start, endPos);
-        return Some<Statement>(new FunctionStatement(name, parameters, body, span));
+
+        return Some<Statement>(new FunctionStatement(name, parameters, returnType, body, span));
     }
 
     private Option<Statement> ParseIfStatement()

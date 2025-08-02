@@ -2,5 +2,4 @@ fun add(a: Int, b: Int) -> Int {
     return a + b;
 }
 
-let result: Int = add(1, 2);
-println(result);
+print(string(add(1, 2)));

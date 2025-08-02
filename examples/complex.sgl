@@ -1,10 +1,10 @@
-fun add(a, b) {
+fun add(a: Int, b: Int) -> Int {
     return a + b;
 }
 
-fun do_work() {
-    let i = 0;
-    let result = 0;
+fun do_work() -> Int {
+    let i: Int = 0;
+    let result: Int = 0;
     while (i < 10) {
         result = add(result, i);
         i = i + 1;
@@ -14,4 +14,5 @@ fun do_work() {
 }
 
 
-println("Result: ", do_work());
+let work_result: Int = do_work();
+println("Result: ", string(work_result));

@@ -2,6 +2,7 @@ using Sigil.CodeGeneration;
 using Sigil.ErrorHandling;
 using Sigil.Lexing;
 using Sigil.Parsing;
+using Sigil.TypeChecking;
 
 namespace Sigil;
 
@@ -15,6 +16,9 @@ public class Compiler(string SourceCode, ICompilerBackend Backend)
         var tokens = lexer.Tokenize();
         var parser = new Parser(tokens, _errorHandler, SourceCode);
         var ast = parser.Parse();
+        // var typeChecker = new TypeCheckingVisitor(_errorHandler);
+        // typeChecker.TypeCheck(ast);
+
 
         // Check if we had errors
         if (_errorHandler.HadError)

@@ -1,4 +1,5 @@
 using Sigil.CodeGeneration;
+using Sigil.Parsing;
 using Sigil.Parsing.Expressions;
 using Sigil.Parsing.Statements;
 using System.Text;
@@ -169,10 +170,26 @@ public class AstPrintingVisitor : IStatementVisitor<string>, IExpressionVisitor<
         indentLevel++;
         foreach (var param in statement.Parameters)
         {
-            sb.AppendLine($"{Indent()}Identifier \"{param}\",");
+            // Handle Parameter objects properly
+            if (param is Parameter p)
+            {
+                sb.AppendLine($"{Indent()}Parameter {{ Name: \"{p.Name}\", TypeName: \"{p.TypeName}\" }},");
+            }
+            else
+            {
+                // Fallback for old string-based parameters
+                sb.AppendLine($"{Indent()}Identifier \"{param}\",");
+            }
         }
         indentLevel--;
         sb.AppendLine($"{Indent()}],");
+
+        // Add return type if present
+        if (!string.IsNullOrEmpty(statement.ReturnTypeName))
+        {
+            sb.AppendLine($"{Indent()}ReturnType: \"{statement.ReturnTypeName}\",");
+        }
+
         sb.AppendLine($"{Indent()}Body: [");
         indentLevel++;
         foreach (var stmt in statement.Body)
@@ -241,6 +258,13 @@ public class AstPrintingVisitor : IStatementVisitor<string>, IExpressionVisitor<
         sb.AppendLine($"{Indent()}LetStatement {{");
         indentLevel++;
         sb.AppendLine($"{Indent()}Name: Identifier \"{statement.Name}\",");
+
+        // Add type annotation if present
+        if (!string.IsNullOrEmpty(statement.TypeName))
+        {
+            sb.AppendLine($"{Indent()}TypeName: \"{statement.TypeName}\",");
+        }
+
         sb.AppendLine($"{Indent()}Initializer: ");
         indentLevel++;
         sb.AppendLine(statement.Initializer.Accept(this) + ",");

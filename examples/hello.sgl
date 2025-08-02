@@ -1,4 +1,4 @@
-fun say_hello() {
+fun say_hello() -> Void {
     println("hello world!");
 }
 
