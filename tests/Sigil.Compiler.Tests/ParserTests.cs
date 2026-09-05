@@ -7,7 +7,7 @@ public class ParserTests
     [Fact]
     public void ParsesFunctionDeclaration()
     {
-        var parser = new Parser(new Lexer("fn main() {}"));
+        var parser = new Parser(new Lexer("fn main() -> Void {}"));
 
         var module = parser.Parse();
 
@@ -26,7 +26,7 @@ public class ParserTests
     {
         var parser = new Parser(new Lexer("fn () {}"));
 
-        Assert.Throws<Exception>(() => parser.Parse());
+        Assert.Throws<Exception>(parser.Parse);
     }
 
     [Fact]
@@ -34,14 +34,21 @@ public class ParserTests
     {
         var parser = new Parser(new Lexer("fn main() {"));
 
-        Assert.Throws<Exception>(() => parser.Parse());
+        Assert.Throws<Exception>(parser.Parse);
+    }
+
+    [Fact]
+    public void RejectsFunctionWithoutReturnType()
+    {
+        var parser = new Parser(new Lexer("fn main() {}"));
+        Assert.Throws<Exception>(parser.Parse);
     }
 
     [Fact]
     public void ParsesReturnStatement()
     {
         var parser = new Parser(new Lexer("""
-        fn main() {
+        fn main() -> Integer {
             return 42;
         }
         """));
@@ -52,7 +59,7 @@ public class ParserTests
             module.Declarations[0]);
 
         Assert.Single(function.Body.Statements);
-
+        Assert.Equal("Integer", function.ReturnType);
         var statement = Assert.IsType<ReturnStatement>(function.Body.Statements[0]);
         var expression = Assert.IsType<IntegerLiteralExpression>(statement.Value);
         Assert.Equal(42, expression.Value);
@@ -62,7 +69,7 @@ public class ParserTests
     public void ParsesEmptyReturnStatement()
     {
         var parser = new Parser(new Lexer("""
-        fn main() {
+        fn main() -> Void {
             return;
         }
         """));
@@ -75,6 +82,7 @@ public class ParserTests
         var statement = Assert.IsType<ReturnStatement>(
             Assert.Single(function.Body.Statements));
 
+        Assert.Equal("Void", function.ReturnType);
         Assert.Null(statement.Value);
     }
 }

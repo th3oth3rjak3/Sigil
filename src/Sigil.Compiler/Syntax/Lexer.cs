@@ -32,6 +32,7 @@ public sealed class Lexer
             '}' => ReadRightBrace(),
             ',' => ReadComma(),
             ':' => ReadColon(),
+            '-' => ReadDash(),
             var ch when char.IsLetter(ch) || ch == '_' => ReadIdentifier(),
             var ch when char.IsDigit(ch) => ReadNumber(),
             _ => throw new Exception($"Unexpected character '{current}' at position {_position}.")
@@ -130,5 +131,19 @@ public sealed class Lexer
     {
         _position++;
         return MakeToken(TokenKind.Colon);
+    }
+
+    private Token ReadDash()
+    {
+        // Look at the next character without consuming it.
+        if (_position + 1 < _source.Length &&
+            _source[_position + 1] == '>')
+        {
+            _position += 2;
+            return MakeToken(TokenKind.Arrow);
+        }
+
+        _position++;
+        return MakeToken(TokenKind.Minus);
     }
 }

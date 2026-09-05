@@ -33,6 +33,10 @@ public class Parser(Lexer lexer)
         var parameters = ParseParameters();
 
         Expect(TokenKind.RightParen);
+        Expect(TokenKind.Arrow);
+
+        var returnType = Expect(TokenKind.Identifier);
+
         Expect(TokenKind.LeftBrace);
 
         var body = ParseBlock();
@@ -42,6 +46,7 @@ public class Parser(Lexer lexer)
         return new FunctionDeclaration(
             name.Lexeme,
             parameters,
+            returnType.Lexeme,
             body);
     }
 
