@@ -1,6 +1,6 @@
 ﻿using Sigil.Compiler.Syntax;
 
-namespace Sigil.Compiler.Tests;
+namespace Sigil.Compiler.Tests.Syntax;
 
 public class LexerTests
 {

@@ -6,4 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="LLVMSharp" Version="22.1.8" />
+  </ItemGroup>
+
 </Project>

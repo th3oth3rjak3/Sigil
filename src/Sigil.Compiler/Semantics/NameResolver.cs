@@ -1,6 +1,6 @@
-namespace Sigil.Compiler.Semantics;
-
 using Sigil.Compiler.Syntax;
+
+namespace Sigil.Compiler.Semantics;
 
 public sealed class NameResolver
 {

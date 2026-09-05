@@ -1,0 +1,34 @@
+using Sigil.Compiler.CodeGen;
+using Sigil.Compiler.Semantics;
+using Sigil.Compiler.Syntax;
+
+namespace Sigil.Compiler.Tests.CodeGen;
+
+public sealed class LlvmCodeGeneratorTests
+{
+    [Fact]
+    public void GeneratesMainFunctionReturningIntegerLiteral()
+    {
+        var module = Parse("""
+            fn main() -> Integer {
+                return 42;
+            }
+            """);
+
+        var bound = new NameResolver().Resolve(module);
+        var typed = new TypeChecker().Check(bound);
+
+        var ir = new LlvmCodeGenerator().Generate(typed);
+
+        Assert.Contains("define i64 @main()", ir);
+        Assert.Contains("ret i64 42", ir);
+    }
+
+    private static Module Parse(string source)
+    {
+        var lexer = new Lexer(source);
+        var parser = new Parser(lexer);
+
+        return parser.Parse();
+    }
+}

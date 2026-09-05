@@ -1,7 +1,7 @@
-namespace Sigil.Compiler.Tests;
-
 using Sigil.Compiler.Semantics;
 using Sigil.Compiler.Syntax;
+
+namespace Sigil.Compiler.Tests.Semantics;
 
 public sealed class NameResolverTests
 {
