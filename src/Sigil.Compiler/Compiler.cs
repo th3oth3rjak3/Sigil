@@ -6,13 +6,15 @@ namespace Sigil.Compiler;
 
 public sealed class Compiler
 {
+    private readonly BuiltinRegistry _builtins = new();
+
     public void Compile(
         string source,
         string outputPath)
     {
         var module = Parse(source);
 
-        var boundModule = new NameResolver()
+        var boundModule = new NameResolver(_builtins)
             .Resolve(module);
 
         var typedModule = new TypeChecker()

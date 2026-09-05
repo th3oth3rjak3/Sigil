@@ -281,4 +281,76 @@ public class ParserTests
         Assert.IsType<FloatLiteralExpression>(expression.Right);
     }
 
+    [Fact]
+    public void ParsesCallExpression()
+    {
+        var module = Parse("""
+        fn main() -> Integer {
+            return println(42);
+        }
+        """);
+
+        var function = Assert.IsType<FunctionDeclaration>(
+            Assert.Single(module.Declarations));
+
+        var statement = Assert.IsType<ReturnStatement>(
+            Assert.Single(function.Body.Statements));
+
+        var call = Assert.IsType<CallExpression>(
+            statement.Value);
+
+        var callee = Assert.IsType<IdentifierExpression>(
+            call.Callee);
+
+        Assert.Equal("println", callee.Name);
+
+        var argument = Assert.Single(call.Arguments);
+
+        var literal = Assert.IsType<IntegerLiteralExpression>(
+            argument);
+
+        Assert.Equal(42, literal.Value);
+    }
+
+    [Fact]
+    public void ParsesCallExpressionWithMultipleArguments()
+    {
+        var module = Parse("""
+        fn main() -> Integer {
+            return foo(1, 2, 3);
+        }
+        """);
+
+        var function = Assert.IsType<FunctionDeclaration>(
+            Assert.Single(module.Declarations));
+
+        var statement = Assert.IsType<ReturnStatement>(
+            Assert.Single(function.Body.Statements));
+
+        var call = Assert.IsType<CallExpression>(statement.Value);
+
+        Assert.Equal("foo", Assert.IsType<IdentifierExpression>(call.Callee).Name);
+        Assert.Equal(3, call.Arguments.Count);
+    }
+
+    [Fact]
+    public void ParsesCallExpressionWithNoArguments()
+    {
+        var module = Parse("""
+        fn main() -> Integer {
+            return foo();
+        }
+        """);
+
+        var function = Assert.IsType<FunctionDeclaration>(
+            Assert.Single(module.Declarations));
+
+        var statement = Assert.IsType<ReturnStatement>(
+            Assert.Single(function.Body.Statements));
+
+        var call = Assert.IsType<CallExpression>(statement.Value);
+
+        Assert.Equal("foo", Assert.IsType<IdentifierExpression>(call.Callee).Name);
+        Assert.Empty(call.Arguments);
+    }
 }

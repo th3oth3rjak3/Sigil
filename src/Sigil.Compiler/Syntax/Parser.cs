@@ -194,7 +194,7 @@ public class Parser(Lexer lexer)
 
     private Expression ParsePrimaryExpression()
     {
-        return _current.Kind switch
+        Expression expression = _current.Kind switch
         {
             TokenKind.IntegerLiteral => ParseIntegerLiteral(),
             TokenKind.FloatLiteral => ParseFloatLiteral(),
@@ -203,6 +203,35 @@ public class Parser(Lexer lexer)
             _ => throw new Exception(
                 $"Unexpected token {_current.Kind} at position {_current.Position}.")
         };
+
+        if (_current.Kind == TokenKind.LeftParen)
+        {
+            expression = ParseCallExpression(expression);
+        }
+
+        return expression;
+    }
+
+    private CallExpression ParseCallExpression(Expression callee)
+    {
+        Expect(TokenKind.LeftParen);
+
+        var arguments = new List<Expression>();
+
+        if (_current.Kind != TokenKind.RightParen)
+        {
+            arguments.Add(ParseExpression());
+
+            while (_current.Kind == TokenKind.Comma)
+            {
+                Advance();
+                arguments.Add(ParseExpression());
+            }
+        }
+
+        Expect(TokenKind.RightParen);
+
+        return new CallExpression(callee, arguments);
     }
 
     private IntegerLiteralExpression ParseIntegerLiteral()

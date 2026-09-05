@@ -6,11 +6,19 @@ public sealed class NativeCompiler
 {
     private const string Clang = "clang";
 
+    private static readonly string RuntimeLibrary =
+        Path.Combine(
+            AppContext.BaseDirectory,
+            "sigil_runtime",
+            "libsigil_runtime.a");
+
     public void Compile(
         string llvmIr,
         string outputPath)
     {
-        var irPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.ll");
+        var irPath = Path.Combine(
+            Path.GetTempPath(),
+            $"{Guid.NewGuid():N}.ll");
 
         try
         {
@@ -26,6 +34,7 @@ public sealed class NativeCompiler
             };
 
             startInfo.ArgumentList.Add(irPath);
+            startInfo.ArgumentList.Add(RuntimeLibrary);
             startInfo.ArgumentList.Add("-o");
             startInfo.ArgumentList.Add(outputPath);
 

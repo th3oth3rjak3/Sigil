@@ -4,30 +4,57 @@ namespace Sigil.Compiler.Semantics;
 
 public sealed class NameResolver
 {
+    private readonly BuiltinRegistry _builtins;
+
+    public NameResolver(BuiltinRegistry builtins)
+    {
+        _builtins = builtins;
+    }
+
     public BoundModule Resolve(Module module)
     {
-        var declarations = new List<BoundFunctionDeclaration>(module.Declarations.Count);
+        var declarations = new List<BoundFunctionDeclaration>(
+            module.Declarations.Count);
+
+        var moduleScope = new Scope();
 
         foreach (var declaration in module.Declarations)
         {
             if (declaration is not FunctionDeclaration function)
             {
-                throw new Exception($"Unsupported declaration: {declaration.GetType().Name}.");
+                throw new Exception(
+                    $"Unsupported declaration: {declaration.GetType().Name}.");
             }
 
-            declarations.Add(ResolveFunction(function));
+            moduleScope.Declare(
+                new Symbol(function.Name, function));
+        }
+
+        foreach (var declaration in module.Declarations)
+        {
+            var function = (FunctionDeclaration)declaration;
+
+            declarations.Add(
+                ResolveFunction(function, moduleScope));
         }
 
         return new BoundModule(declarations);
     }
 
-    private BoundFunctionDeclaration ResolveFunction(FunctionDeclaration function)
+    private BoundFunctionDeclaration ResolveFunction(
+        FunctionDeclaration function,
+        Scope parentScope)
     {
-        var scope = new Scope();
+        var scope = new Scope(parentScope);
 
         foreach (var parameter in function.Parameters)
         {
-            scope.Declare(new Symbol(parameter.Name, function));
+            var declaration = new VariableDeclaration(
+                parameter.Name,
+                parameter.Type);
+
+            scope.Declare(
+                new Symbol(parameter.Name, declaration));
         }
 
         var body = ResolveBlock(function.Body, scope);
@@ -53,11 +80,14 @@ public sealed class NameResolver
         {
             LetStatement let => ResolveLet(let, scope),
             ReturnStatement @return => ResolveReturn(@return, scope),
-            _ => throw new Exception($"Unsupported statement: {statement.GetType().Name}.")
+            _ => throw new Exception(
+                $"Unsupported statement: {statement.GetType().Name}.")
         };
     }
 
-    private BoundLetStatement ResolveLet(LetStatement statement, Scope scope)
+    private BoundLetStatement ResolveLet(
+        LetStatement statement,
+        Scope scope)
     {
         var variable = new VariableDeclaration(
             statement.Name,
@@ -75,7 +105,9 @@ public sealed class NameResolver
             initializer);
     }
 
-    private BoundReturnStatement ResolveReturn(ReturnStatement statement, Scope scope)
+    private BoundReturnStatement ResolveReturn(
+        ReturnStatement statement,
+        Scope scope)
     {
         var value = statement.Value is null
             ? null
@@ -102,20 +134,28 @@ public sealed class NameResolver
             BinaryExpression binary =>
                 ResolveBinaryExpression(binary, scope),
 
+            CallExpression call =>
+                ResolveCallExpression(call, scope),
+
             _ => throw new Exception(
                 $"Unsupported expression: {expression.GetType().Name}.")
         };
     }
 
-    private BoundIdentifierExpression ResolveIdentifier(IdentifierExpression expression, Scope scope)
+    private BoundIdentifierExpression ResolveIdentifier(
+        IdentifierExpression expression,
+        Scope scope)
     {
         var symbol = scope.Resolve(expression.Name);
-        return new BoundIdentifierExpression(expression, symbol);
+
+        return new BoundIdentifierExpression(
+            expression,
+            symbol);
     }
 
     private BoundBinaryExpression ResolveBinaryExpression(
-    BinaryExpression expression,
-    Scope scope)
+        BinaryExpression expression,
+        Scope scope)
     {
         var left = ResolveExpression(
             expression.Left,
@@ -129,5 +169,26 @@ public sealed class NameResolver
             expression,
             left,
             right);
+    }
+
+    private BoundCallExpression ResolveCallExpression(
+        CallExpression expression,
+        Scope scope)
+    {
+        var arguments = expression.Arguments
+            .Select(argument => ResolveExpression(argument, scope))
+            .ToList();
+
+        var identifier = (IdentifierExpression)expression.Callee;
+
+
+        var callee = ResolveIdentifier(
+            identifier,
+            scope);
+
+        return new BoundCallExpression(
+            expression,
+            callee,
+            arguments);
     }
 }

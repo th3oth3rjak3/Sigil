@@ -15,7 +15,7 @@ public sealed class LlvmCodeGeneratorTests
             }
             """);
 
-        var bound = new NameResolver().Resolve(module);
+        var bound = new NameResolver(new BuiltinRegistry()).Resolve(module);
         var typed = new TypeChecker().Check(bound);
 
         var ir = new LlvmCodeGenerator().Generate(typed);
@@ -43,7 +43,7 @@ public sealed class LlvmCodeGeneratorTests
         }
         """);
 
-        var bound = new NameResolver().Resolve(module);
+        var bound = new NameResolver(new BuiltinRegistry()).Resolve(module);
         var typed = new TypeChecker().Check(bound);
 
         var ir = new LlvmCodeGenerator().Generate(typed);
@@ -62,7 +62,7 @@ public sealed class LlvmCodeGeneratorTests
         }
         """);
 
-        var bound = new NameResolver().Resolve(module);
+        var bound = new NameResolver(new BuiltinRegistry()).Resolve(module);
         var typed = new TypeChecker().Check(bound);
 
         var ir = new LlvmCodeGenerator().Generate(typed);
@@ -81,7 +81,7 @@ public sealed class LlvmCodeGeneratorTests
         }
         """);
 
-        var bound = new NameResolver().Resolve(module);
+        var bound = new NameResolver(new BuiltinRegistry()).Resolve(module);
         var typed = new TypeChecker().Check(bound);
 
         var ir = new LlvmCodeGenerator().Generate(typed);
@@ -100,7 +100,7 @@ public sealed class LlvmCodeGeneratorTests
         }
         """);
 
-        var bound = new NameResolver().Resolve(module);
+        var bound = new NameResolver(new BuiltinRegistry()).Resolve(module);
         var typed = new TypeChecker().Check(bound);
 
         var ir = new LlvmCodeGenerator().Generate(typed);
@@ -119,11 +119,62 @@ public sealed class LlvmCodeGeneratorTests
         }
         """);
 
-        var bound = new NameResolver().Resolve(module);
+        var bound = new NameResolver(new BuiltinRegistry()).Resolve(module);
         var typed = new TypeChecker().Check(bound);
 
         var ir = new LlvmCodeGenerator().Generate(typed);
 
         Assert.Contains("fdiv double", ir);
+    }
+
+    [Fact]
+    public void Generate_DeclaresRuntimeFunctions()
+    {
+        var module = new TypedModule(
+            [
+                new TypedFunctionDeclaration(
+                    new FunctionDeclaration(
+                        "main",
+                        [],
+                        "Integer",
+                        new Block([])),
+                    new VoidType(),
+                    new TypedBlock([]))
+            ]);
+
+        var generator = new LlvmCodeGenerator();
+
+        var ir = generator.Generate(module);
+
+        Assert.Contains(
+            "declare void @sigil_println_integer(i64)",
+            ir);
+
+        Assert.Contains(
+            "declare void @sigil_println_float(double)",
+            ir);
+    }
+
+    [Fact]
+    public void GeneratesFunctionCall()
+    {
+        var module = Parse("""
+        fn foo() -> Integer {
+            return 42;
+        }
+
+        fn main() -> Integer {
+            return foo();
+        }
+        """);
+
+        var bound = new NameResolver(new BuiltinRegistry()).Resolve(module);
+        var typed = new TypeChecker().Check(bound);
+
+        var ir = new LlvmCodeGenerator().Generate(typed);
+
+        Assert.Contains(
+            "call i64 @foo()",
+            ir);
     }
 }

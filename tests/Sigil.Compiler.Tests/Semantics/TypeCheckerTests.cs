@@ -8,7 +8,7 @@ public sealed class TypeCheckerTests
     private static TypedModule TypeCheck(string source)
     {
         var module = new Parser(new Lexer(source)).Parse();
-        var bound = new NameResolver().Resolve(module);
+        var bound = new NameResolver(new BuiltinRegistry()).Resolve(module);
 
         return new TypeChecker().Check(bound);
     }
@@ -167,7 +167,7 @@ public sealed class TypeCheckerTests
             }
             """)).Parse();
 
-        var bound = new NameResolver().Resolve(module);
+        var bound = new NameResolver(new BuiltinRegistry()).Resolve(module);
 
         Assert.Throws<Exception>(
             () => new TypeChecker().Check(bound));
@@ -182,7 +182,7 @@ public sealed class TypeCheckerTests
             }
             """)).Parse();
 
-        var bound = new NameResolver().Resolve(module);
+        var bound = new NameResolver(new BuiltinRegistry()).Resolve(module);
 
         Assert.Throws<Exception>(
             () => new TypeChecker().Check(bound));
@@ -197,7 +197,7 @@ public sealed class TypeCheckerTests
             }
             """)).Parse();
 
-        var bound = new NameResolver().Resolve(module);
+        var bound = new NameResolver(new BuiltinRegistry()).Resolve(module);
 
         Assert.Throws<Exception>(
             () => new TypeChecker().Check(bound));
@@ -212,7 +212,7 @@ public sealed class TypeCheckerTests
             }
             """)).Parse();
 
-        var bound = new NameResolver().Resolve(module);
+        var bound = new NameResolver(new BuiltinRegistry()).Resolve(module);
 
         Assert.Throws<Exception>(
             () => new TypeChecker().Check(bound));
@@ -227,7 +227,7 @@ public sealed class TypeCheckerTests
             }
             """)).Parse();
 
-        var bound = new NameResolver().Resolve(module);
+        var bound = new NameResolver(new BuiltinRegistry()).Resolve(module);
 
         Assert.Throws<Exception>(
             () => new TypeChecker().Check(bound));
@@ -304,5 +304,34 @@ public sealed class TypeCheckerTests
         Assert.IsType<FloatType>(expression.Type);
         Assert.IsType<TypedFloatLiteralExpression>(expression.Left);
         Assert.IsType<TypedFloatLiteralExpression>(expression.Right);
+    }
+
+    [Fact]
+    public void ChecksCallExpression()
+    {
+        var typed = TypeCheck("""
+        fn add(a: Integer, b: Integer) -> Integer {
+            return a + b;
+        }
+
+        fn main() -> Integer {
+            return add(20, 22);
+        }
+        """);
+
+        var main = Assert.IsType<TypedFunctionDeclaration>(
+            typed.Declarations[1]);
+
+        var statement = Assert.IsType<TypedReturnStatement>(
+            Assert.Single(main.Body.Statements));
+
+        var call = Assert.IsType<TypedCallExpression>(
+            statement.Value);
+
+        Assert.IsType<IntegerType>(call.Type);
+        Assert.Equal(2, call.Arguments.Count);
+
+        Assert.IsType<IntegerType>(call.Arguments[0].Type);
+        Assert.IsType<IntegerType>(call.Arguments[1].Type);
     }
 }

@@ -121,4 +121,23 @@ public sealed class EndToEndCompilationTests
 
         Assert.Equal(21, result.ExitCode);
     }
+
+    [Fact]
+    public void CompilesAndRunsFunctionCall()
+    {
+        const string source = """
+        fn foo() -> Integer {
+            return 42;
+        }
+
+        fn main() -> Integer {
+            return foo();
+        }
+        """;
+
+        var result = CompileAndRun(source);
+
+        Assert.Equal(42, result.ExitCode);
+    }
+
 }

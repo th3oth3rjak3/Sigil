@@ -153,6 +153,9 @@ public sealed class TypeChecker
             BoundBinaryExpression binary =>
                 CheckBinaryExpression(binary),
 
+            BoundCallExpression call =>
+                CheckCallExpression(call),
+
             _ => throw new Exception(
                 $"Unsupported bound expression: " +
                 $"{expression.GetType().Name}.")
@@ -194,6 +197,65 @@ public sealed class TypeChecker
             left,
             right,
             left.Type);
+    }
+
+    private TypedCallExpression CheckCallExpression(
+        BoundCallExpression expression)
+    {
+
+        if (expression.Callee is not BoundIdentifierExpression identifier)
+        {
+            throw new Exception(
+                $"Unsupported call target: " +
+                $"{expression.Callee.GetType().Name}.");
+        }
+
+        if (identifier.Symbol.Declaration
+            is not FunctionDeclaration function)
+        {
+            throw new Exception(
+                $"Unsupported call target: " +
+                $"{identifier.Symbol.Declaration.GetType().Name}.");
+        }
+
+        if (function.Parameters.Count != expression.Arguments.Count)
+        {
+            throw new Exception(
+                $"Function '{function.Name}' expects " +
+                $"{function.Parameters.Count} arguments, but " +
+                $"{expression.Arguments.Count} were provided.");
+        }
+
+        var arguments = new List<TypedExpression>(
+            expression.Arguments.Count);
+
+        for (var i = 0; i < expression.Arguments.Count; i++)
+        {
+            var argument = CheckExpression(
+                expression.Arguments[i]);
+
+            var parameter = function.Parameters[i];
+            var parameterType = ResolveType(parameter.Type);
+
+            if (argument.Type.GetType() != parameterType.GetType())
+            {
+                throw new Exception(
+                    $"Argument {i + 1} of function '{function.Name}' " +
+                    $"expects {parameterType.GetType().Name}, " +
+                    $"but got {argument.Type.GetType().Name}.");
+            }
+
+            arguments.Add(argument);
+        }
+
+        var returnType = ResolveType(function.ReturnType);
+
+        // TODO: once we know the types, if it's a BoundBuiltinExpression we can construct a typed Builtin.
+
+        return new TypedCallExpression(
+            expression,
+            returnType,
+            arguments);
     }
 
     private TypedIdentifierExpression CheckIdentifier(

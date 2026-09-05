@@ -11,6 +11,8 @@ public sealed class LlvmCodeGenerator
         using var context = LLVMContextRef.Create();
         using var llvmModule = context.CreateModuleWithName("sigil");
 
+        DeclareRuntimeFunctions(context, llvmModule);
+
         foreach (var function in module.Declarations)
         {
             GenerateFunction(context, llvmModule, function);
@@ -50,14 +52,86 @@ public sealed class LlvmCodeGenerator
         {
             GenerateStatement(
                 context,
+                module,
                 builder,
                 locals,
                 statement);
         }
     }
 
+    private static void DeclareRuntimeFunctions(
+    LLVMContextRef context,
+    LLVMModuleRef module)
+    {
+        var integerType = LLVMTypeRef.CreateFunction(
+            context.VoidType,
+            [context.Int64Type],
+            false);
+
+        module.AddFunction(
+            "sigil_println_integer",
+            integerType);
+
+        var floatType = LLVMTypeRef.CreateFunction(
+            context.VoidType,
+            [context.DoubleType],
+            false);
+
+        module.AddFunction(
+            "sigil_println_float",
+            floatType);
+    }
+
+    private static LLVMValueRef GenerateCallExpression(
+        LLVMContextRef context,
+        LLVMModuleRef module,
+        LLVMBuilderRef builder,
+        Dictionary<Declaration, LLVMValueRef> locals,
+        TypedCallExpression expression)
+    {
+        var arguments = expression.Arguments
+            .Select(argument => GenerateExpression(
+                context,
+                module,
+                builder,
+                locals,
+                argument))
+            .ToArray();
+
+        var functionType = LLVMTypeRef.CreateFunction(
+            GetLlvmType(context, expression.Type),
+            expression.Arguments
+                .Select(argument => GetLlvmType(context, argument.Type))
+                .ToArray(),
+            false);
+
+        LLVMValueRef function;
+
+        switch (expression.Expression.Callee)
+        {
+            case BoundIdentifierExpression identifier:
+                function = module.GetNamedFunction(
+                    identifier.Symbol.Name);
+                break;
+
+            // TODO: figure out if this is the right place for builtins.
+
+            default:
+                throw new Exception(
+                    $"Unsupported call target: " +
+                    $"{expression.Expression.Callee.GetType().Name}.");
+        }
+
+        return builder.BuildCall2(
+            functionType,
+            function,
+            arguments,
+            "");
+    }
+
     private static void GenerateStatement(
         LLVMContextRef context,
+        LLVMModuleRef module,
         LLVMBuilderRef builder,
         Dictionary<Declaration, LLVMValueRef> locals,
         TypedStatement statement)
@@ -66,6 +140,7 @@ public sealed class LlvmCodeGenerator
         {
             var value = GenerateExpression(
                 context,
+                module,
                 builder,
                 locals,
                 let.Initializer);
@@ -95,6 +170,7 @@ public sealed class LlvmCodeGenerator
 
             var value = GenerateExpression(
                 context,
+                module,
                 builder,
                 locals,
                 returnStatement.Value);
@@ -109,6 +185,7 @@ public sealed class LlvmCodeGenerator
 
     private static LLVMValueRef GenerateExpression(
         LLVMContextRef context,
+        LLVMModuleRef module,
         LLVMBuilderRef builder,
         Dictionary<Declaration, LLVMValueRef> locals,
         TypedExpression expression)
@@ -142,12 +219,14 @@ public sealed class LlvmCodeGenerator
         {
             var left = GenerateExpression(
                 context,
+                module,
                 builder,
                 locals,
                 binary.Left);
 
             var right = GenerateExpression(
                 context,
+                module,
                 builder,
                 locals,
                 binary.Right);
@@ -170,6 +249,16 @@ public sealed class LlvmCodeGenerator
                     $"Unsupported binary type: " +
                     $"{binary.Type.GetType().Name}.")
             };
+        }
+
+        if (expression is TypedCallExpression call)
+        {
+            return GenerateCallExpression(
+                context,
+                module,
+                builder,
+                locals,
+                call);
         }
 
         throw new Exception(

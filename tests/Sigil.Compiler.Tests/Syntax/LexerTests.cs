@@ -232,4 +232,16 @@ public class LexerTests
             new Token(TokenKind.EndOfFile, "", 10, 0),
             lexer.NextToken());
     }
+
+    [Fact]
+    public void TokenizesCallExpression()
+    {
+        var lexer = new Lexer("println(42);");
+
+        Assert.Equal(new Token(TokenKind.Identifier, "println", 0, 7), lexer.NextToken());
+        Assert.Equal(new Token(TokenKind.LeftParen, "(", 7, 1), lexer.NextToken());
+        Assert.Equal(new Token(TokenKind.IntegerLiteral, "42", 8, 2), lexer.NextToken());
+        Assert.Equal(new Token(TokenKind.RightParen, ")", 10, 1), lexer.NextToken());
+        Assert.Equal(new Token(TokenKind.Semicolon, ";", 11, 1), lexer.NextToken());
+    }
 }

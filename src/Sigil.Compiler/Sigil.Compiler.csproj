@@ -10,4 +10,10 @@
     <PackageReference Include="LLVMSharp" Version="22.1.8" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="..\..\runtime\zig-out\lib\libsigil_runtime.a"
+          Link="sigil_runtime\libsigil_runtime.a"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

@@ -12,7 +12,7 @@ public sealed class NameResolverTests
 
     private static BoundModule Resolve(Module module)
     {
-        return new NameResolver().Resolve(module);
+        return new NameResolver(new BuiltinRegistry()).Resolve(module);
     }
 
     private static BoundModule Resolve(string source)
@@ -520,5 +520,33 @@ public sealed class NameResolverTests
 
         Assert.IsType<BoundFloatLiteralExpression>(expression.Left);
         Assert.IsType<BoundFloatLiteralExpression>(expression.Right);
+    }
+
+    [Fact]
+    public void ResolvesCallExpression()
+    {
+        var module = Parse("""
+        fn foo() -> Integer {
+            return 42;
+        }
+
+        fn main() -> Integer {
+            return foo();
+        }
+        """);
+
+        var bound = new NameResolver(new BuiltinRegistry()).Resolve(module);
+
+        var main = Assert.IsType<BoundFunctionDeclaration>(
+            bound.Declarations[1]);
+
+        var statement = Assert.IsType<BoundReturnStatement>(
+            Assert.Single(main.Body.Statements));
+
+        var call = Assert.IsType<BoundCallExpression>(
+            statement.Value);
+
+        Assert.Equal("foo", call.Callee.Symbol.Name);
+        Assert.Empty(call.Arguments);
     }
 }
