@@ -115,4 +115,22 @@ public class LexerTests
         Assert.Equal(new Token(TokenKind.Arrow, "->", 0, 2), lexer.NextToken());
         Assert.Equal(new Token(TokenKind.EndOfFile, "", 2, 0), lexer.NextToken());
     }
+
+    [Fact]
+    public void LexesEquals()
+    {
+        var lexer = new Lexer("=");
+
+        Assert.Equal(new Token(TokenKind.Equals, "=", 0, 1), lexer.NextToken());
+        Assert.Equal(new Token(TokenKind.EndOfFile, "", 1, 0), lexer.NextToken());
+    }
+
+    [Fact]
+    public void LexesEqualsEquals()
+    {
+        var lexer = new Lexer("==");
+
+        Assert.Equal(new Token(TokenKind.EqualsEquals, "==", 0, 2), lexer.NextToken());
+        Assert.Equal(new Token(TokenKind.EndOfFile, "", 2, 0), lexer.NextToken());
+    }
 }

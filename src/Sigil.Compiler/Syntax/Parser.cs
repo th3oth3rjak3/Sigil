@@ -10,8 +10,13 @@ public class Parser(Lexer lexer)
 
         _current = lexer.NextToken();
 
-        if (_current.Kind == TokenKind.Fn)
+        while (_current.Kind != TokenKind.EndOfFile)
         {
+            if (_current.Kind != TokenKind.Fn)
+            {
+                throw new Exception($"Unexpected token {_current.Kind} at position {_current.Position}.");
+            }
+
             Advance();
             declarations.Add(ParseFunction());
         }
@@ -96,9 +101,32 @@ public class Parser(Lexer lexer)
         return _current.Kind switch
         {
             TokenKind.Return => ParseReturnStatement(),
+            TokenKind.Let => ParseLetStatement(),
             _ => throw new Exception(
                 $"Unexpected token {_current.Kind} at position {_current.Position}.")
         };
+    }
+
+    private LetStatement ParseLetStatement()
+    {
+        Expect(TokenKind.Let);
+
+        var name = Expect(TokenKind.Identifier);
+
+        Expect(TokenKind.Colon);
+
+        var type = Expect(TokenKind.Identifier);
+
+        Expect(TokenKind.Equals);
+
+        var initializer = ParseExpression();
+
+        Expect(TokenKind.Semicolon);
+
+        return new LetStatement(
+            name.Lexeme,
+            type.Lexeme,
+            initializer);
     }
 
     private ReturnStatement ParseReturnStatement()
@@ -109,15 +137,40 @@ public class Parser(Lexer lexer)
 
         if (_current.Kind != TokenKind.Semicolon)
         {
-            var integer = Expect(TokenKind.IntegerLiteral);
-
-            value = new IntegerLiteralExpression(long.Parse(integer.Lexeme));
+            value = ParseExpression();
         }
 
         Expect(TokenKind.Semicolon);
 
         return new ReturnStatement(value);
     }
+
+    private Expression ParseExpression()
+    {
+        return _current.Kind switch
+        {
+            TokenKind.IntegerLiteral => ParseIntegerLiteral(),
+            TokenKind.Identifier => ParseIdentifierExpression(),
+            _ => throw new Exception(
+                $"Unexpected token {_current.Kind} at position {_current.Position}.")
+        };
+    }
+
+    private IntegerLiteralExpression ParseIntegerLiteral()
+    {
+        var token = Expect(TokenKind.IntegerLiteral);
+
+        return new IntegerLiteralExpression(
+            long.Parse(token.Lexeme));
+    }
+
+    private IdentifierExpression ParseIdentifierExpression()
+    {
+        var token = Expect(TokenKind.Identifier);
+
+        return new IdentifierExpression(token.Lexeme);
+    }
+
     private Token Expect(TokenKind kind)
     {
         if (_current.Kind != kind)

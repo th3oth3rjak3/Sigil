@@ -135,4 +135,43 @@ public class ParserTests
 
         Assert.Throws<Exception>(parser.Parse);
     }
+
+    [Fact]
+    public void ParsesLetStatement()
+    {
+        var source = """
+        fn main() -> Integer {
+            let x: Integer = 42;
+            return x;
+        }
+        """;
+
+        var parser = new Parser(new Lexer(source));
+
+        var module = parser.Parse();
+
+        var function = Assert.IsType<FunctionDeclaration>(
+            Assert.Single(module.Declarations));
+
+        Assert.Equal(2, function.Body.Statements.Count);
+
+        var let = Assert.IsType<LetStatement>(
+            function.Body.Statements[0]);
+
+        Assert.Equal("x", let.Name);
+        Assert.Equal("Integer", let.Type);
+
+        var initializer = Assert.IsType<IntegerLiteralExpression>(
+            let.Initializer);
+
+        Assert.Equal(42, initializer.Value);
+
+        var returnStatement = Assert.IsType<ReturnStatement>(
+            function.Body.Statements[1]);
+
+        var identifier = Assert.IsType<IdentifierExpression>(
+            returnStatement.Value);
+
+        Assert.Equal("x", identifier.Name);
+    }
 }

@@ -33,6 +33,7 @@ public sealed class Lexer
             ',' => ReadComma(),
             ':' => ReadColon(),
             '-' => ReadDash(),
+            '=' => ReadEquals(),
             var ch when char.IsLetter(ch) || ch == '_' => ReadIdentifier(),
             var ch when char.IsDigit(ch) => ReadNumber(),
             _ => throw new Exception($"Unexpected character '{current}' at position {_position}.")
@@ -145,5 +146,27 @@ public sealed class Lexer
 
         _position++;
         return MakeToken(TokenKind.Minus);
+    }
+
+    private Token ReadEquals()
+    {
+        _position++;
+
+        if (_position < _source.Length && _source[_position] == '=')
+        {
+            _position++;
+
+            return new Token(
+                TokenKind.EqualsEquals,
+                "==",
+                _tokenStart,
+                2);
+        }
+
+        return new Token(
+            TokenKind.Equals,
+            "=",
+            _tokenStart,
+            1);
     }
 }
