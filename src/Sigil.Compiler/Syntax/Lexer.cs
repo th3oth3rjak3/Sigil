@@ -4,6 +4,7 @@ public sealed class Lexer
 {
     private readonly string _source;
     private int _position;
+    private int _tokenStart;
 
     public Lexer(string source)
     {
@@ -19,21 +20,25 @@ public sealed class Lexer
             return new Token(TokenKind.EndOfFile, string.Empty, _position, 0);
         }
 
-        var start = _position;
+        _tokenStart = _position;
         var current = _source[_position];
 
-        if (char.IsLetter(current) || current == '_')
+        var token = current switch
         {
-            return ReadIdentifier(start);
-        }
+            ';' => MakeToken(TokenKind.Semicolon, 1),
+            var ch when char.IsLetter(ch) || ch == '_' => ReadIdentifier(),
+            _ => throw new Exception($"Unexpected character '{current}' at position {_position}.")
 
-        if (current == ';')
-        {
-            _position++;
-            return new Token(TokenKind.Semicolon, ";", start, 1);
-        }
+        };
 
-        throw new Exception($"Unexpected character '{current}' at position {_position}.");
+        return token;
+    }
+
+    private Token MakeToken(TokenKind kind, int length)
+    {
+        var lexeme = _source.Substring(_tokenStart, length);
+        _position += length;
+        return new Token(kind, lexeme, _tokenStart, length);
     }
 
     private void SkipWhitespace()
@@ -45,7 +50,7 @@ public sealed class Lexer
         }
     }
 
-    private Token ReadIdentifier(int start)
+    private Token ReadIdentifier()
     {
         while (_position < _source.Length &&
                (char.IsLetterOrDigit(_source[_position]) ||
@@ -54,8 +59,8 @@ public sealed class Lexer
             _position++;
         }
 
-        var length = _position - start;
-        var lexeme = _source.Substring(start, length);
+        var length = _position - _tokenStart;
+        var lexeme = _source.Substring(_tokenStart, length);
 
         var kind = lexeme switch
         {
@@ -63,6 +68,6 @@ public sealed class Lexer
             _ => TokenKind.Identifier
         };
 
-        return new Token(kind, lexeme, start, length);
+        return new Token(kind, lexeme, _tokenStart, length);
     }
 }
