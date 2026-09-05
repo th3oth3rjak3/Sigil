@@ -1,5 +1,9 @@
 using Sigil.Compiler.CodeGen;
 using Sigil.Compiler.Semantics;
+using Sigil.Compiler.Semantics.Primitives;
+using Sigil.Compiler.Semantics.TypedDeclarations;
+using Sigil.Compiler.Semantics.TypedPrimitives;
+using Sigil.Compiler.Semantics.Types;
 using Sigil.Compiler.Syntax;
 using Sigil.Compiler.Syntax.Declarations;
 using Sigil.Compiler.Syntax.Primitives;

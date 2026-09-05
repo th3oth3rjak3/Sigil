@@ -1,5 +1,10 @@
 using LLVMSharp.Interop;
-using Sigil.Compiler.Semantics;
+using Sigil.Compiler.Semantics.BoundExpressions;
+using Sigil.Compiler.Semantics.TypedDeclarations;
+using Sigil.Compiler.Semantics.TypedExpressions;
+using Sigil.Compiler.Semantics.TypedPrimitives;
+using Sigil.Compiler.Semantics.TypedStatements;
+using Sigil.Compiler.Semantics.Types;
 using Sigil.Compiler.Syntax.Declarations;
 using Sigil.Compiler.Syntax.Primitives;
 
@@ -304,7 +309,7 @@ public sealed class LlvmCodeGenerator
 
     private static LLVMTypeRef GetLlvmType(
         LLVMContextRef context,
-        Semantics.Type type)
+        Semantics.Types.SigilType type)
     {
         return type switch
         {

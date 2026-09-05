@@ -1,3 +1,8 @@
+using Sigil.Compiler.Semantics.BoundDeclarations;
+using Sigil.Compiler.Semantics.BoundExpressions;
+using Sigil.Compiler.Semantics.BoundPrimitives;
+using Sigil.Compiler.Semantics.BoundStatements;
+using Sigil.Compiler.Semantics.Primitives;
 using Sigil.Compiler.Syntax.Declarations;
 using Sigil.Compiler.Syntax.Expressions;
 using Sigil.Compiler.Syntax.Primitives;

@@ -1,5 +1,14 @@
 namespace Sigil.Compiler.Semantics;
 
+using Sigil.Compiler.Semantics.BoundDeclarations;
+using Sigil.Compiler.Semantics.BoundExpressions;
+using Sigil.Compiler.Semantics.BoundPrimitives;
+using Sigil.Compiler.Semantics.BoundStatements;
+using Sigil.Compiler.Semantics.TypedDeclarations;
+using Sigil.Compiler.Semantics.TypedExpressions;
+using Sigil.Compiler.Semantics.TypedPrimitives;
+using Sigil.Compiler.Semantics.TypedStatements;
+using Sigil.Compiler.Semantics.Types;
 using Sigil.Compiler.Syntax.Declarations;
 using Sigil.Compiler.Syntax.Primitives;
 
@@ -36,7 +45,7 @@ public sealed class TypeChecker
 
     private TypedBlock CheckBlock(
         BoundBlock block,
-        Type functionReturnType)
+        SigilType functionReturnType)
     {
         var statements = new List<TypedStatement>(
             block.Statements.Count);
@@ -54,7 +63,7 @@ public sealed class TypeChecker
 
     private TypedStatement CheckStatement(
         BoundStatement statement,
-        Type functionReturnType)
+        SigilType functionReturnType)
     {
         return statement switch
         {
@@ -99,7 +108,7 @@ public sealed class TypeChecker
 
     private TypedReturnStatement CheckReturn(
         BoundReturnStatement statement,
-        Type functionReturnType)
+        SigilType functionReturnType)
     {
         if (statement.Value is null)
         {
@@ -280,7 +289,7 @@ public sealed class TypeChecker
             type);
     }
 
-    private static Type ResolveType(string name)
+    private static SigilType ResolveType(string name)
     {
         return name switch
         {
@@ -294,7 +303,7 @@ public sealed class TypeChecker
         };
     }
 
-    private static bool AreSameType(Type left, Type right)
+    private static bool AreSameType(SigilType left, SigilType right)
     {
         return left.GetType() == right.GetType();
     }
