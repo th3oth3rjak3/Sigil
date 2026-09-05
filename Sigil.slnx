@@ -1,1 +1,9 @@
-<Solution />
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Sigil.Cli/Sigil.Cli.csproj" />
+    <Project Path="src/Sigil.Compiler/Sigil.Compiler.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Sigil.Compiler.Tests/Sigil.Compiler.Tests.csproj" />
+  </Folder>
+</Solution>
