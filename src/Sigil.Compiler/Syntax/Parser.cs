@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Sigil.Compiler.Syntax;
 
 public class Parser(Lexer lexer)
@@ -195,6 +197,7 @@ public class Parser(Lexer lexer)
         return _current.Kind switch
         {
             TokenKind.IntegerLiteral => ParseIntegerLiteral(),
+            TokenKind.FloatLiteral => ParseFloatLiteral(),
             TokenKind.Identifier => ParseIdentifierExpression(),
 
             _ => throw new Exception(
@@ -208,6 +211,17 @@ public class Parser(Lexer lexer)
 
         return new IntegerLiteralExpression(
             long.Parse(token.Lexeme));
+    }
+
+    private FloatLiteralExpression ParseFloatLiteral()
+    {
+        var value = double.Parse(
+            _current.Lexeme,
+            CultureInfo.InvariantCulture);
+
+        Advance();
+
+        return new FloatLiteralExpression(value);
     }
 
     private IdentifierExpression ParseIdentifierExpression()

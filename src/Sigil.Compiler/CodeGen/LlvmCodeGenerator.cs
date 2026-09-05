@@ -121,6 +121,13 @@ public sealed class LlvmCodeGenerator
                 true);
         }
 
+        if (expression is TypedFloatLiteralExpression floatLiteral)
+        {
+            return LLVMValueRef.CreateConstReal(
+                context.DoubleType,
+                floatLiteral.Expression.Value);
+        }
+
         if (expression is TypedIdentifierExpression identifier)
         {
             var storage = locals[identifier.Symbol.Declaration];
@@ -133,7 +140,6 @@ public sealed class LlvmCodeGenerator
 
         if (expression is TypedBinaryExpression binary)
         {
-
             var left = GenerateExpression(
                 context,
                 builder,
@@ -146,32 +152,64 @@ public sealed class LlvmCodeGenerator
                 locals,
                 binary.Right);
 
-            return binary.Expression.OperatorKind switch
+            return binary.Type switch
             {
-                TokenKind.Plus => builder.BuildAdd(
+                IntegerType => GenerateIntegerBinaryExpression(
+                    builder,
+                    binary.Expression.OperatorKind,
                     left,
-                    right,
-                    "add"),
+                    right),
 
-                TokenKind.Minus => builder.BuildSub(
+                FloatType => GenerateFloatBinaryExpression(
+                    builder,
+                    binary.Expression.OperatorKind,
                     left,
-                    right,
-                    "sub"),
-
-                TokenKind.Star => builder.BuildMul(
-                    left,
-                    right,
-                    "mul"
-                ),
+                    right),
 
                 _ => throw new Exception(
-                    $"Unsupported binary operator: " +
-                    $"{binary.Expression.OperatorKind}.")
+                    $"Unsupported binary type: " +
+                    $"{binary.Type.GetType().Name}.")
             };
         }
 
         throw new Exception(
             $"Unsupported typed expression: {expression.GetType().Name}.");
+    }
+
+    private static LLVMValueRef GenerateIntegerBinaryExpression(
+    LLVMBuilderRef builder,
+    TokenKind operatorKind,
+    LLVMValueRef left,
+    LLVMValueRef right)
+    {
+        return operatorKind switch
+        {
+            TokenKind.Plus => builder.BuildAdd(left, right, "add"),
+            TokenKind.Minus => builder.BuildSub(left, right, "sub"),
+            TokenKind.Star => builder.BuildMul(left, right, "mul"),
+            TokenKind.Slash => builder.BuildSDiv(left, right, "div"),
+
+            _ => throw new Exception(
+                $"Unsupported integer binary operator: {operatorKind}.")
+        };
+    }
+
+    private static LLVMValueRef GenerateFloatBinaryExpression(
+        LLVMBuilderRef builder,
+        TokenKind operatorKind,
+        LLVMValueRef left,
+        LLVMValueRef right)
+    {
+        return operatorKind switch
+        {
+            TokenKind.Plus => builder.BuildFAdd(left, right, "add"),
+            TokenKind.Minus => builder.BuildFSub(left, right, "sub"),
+            TokenKind.Star => builder.BuildFMul(left, right, "mul"),
+            TokenKind.Slash => builder.BuildFDiv(left, right, "div"),
+
+            _ => throw new Exception(
+                $"Unsupported float binary operator: {operatorKind}.")
+        };
     }
 
     private static LLVMTypeRef GetLlvmType(

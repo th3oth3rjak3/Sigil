@@ -107,4 +107,18 @@ public sealed class EndToEndCompilationTests
 
         Assert.Equal(10, result.ExitCode);
     }
+
+    [Fact]
+    public void CompilesAndRunsIntegerDivisionExpression()
+    {
+        const string source = """
+        fn main() -> Integer {
+            return 42 / 2;
+        }
+        """;
+
+        var result = CompileAndRun(source);
+
+        Assert.Equal(21, result.ExitCode);
+    }
 }

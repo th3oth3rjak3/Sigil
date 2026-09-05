@@ -15,16 +15,27 @@ public sealed class NameResolverTests
         return new NameResolver().Resolve(module);
     }
 
+    private static BoundModule Resolve(string source)
+    {
+        return Resolve(Parse(source));
+    }
+
+    private static BoundFunctionDeclaration ResolveFunction(
+        string source)
+    {
+        var module = Resolve(source);
+
+        return Assert.Single(module.Declarations);
+    }
+
     [Fact]
     public void ResolvesModule()
     {
-        var module = Parse("""
+        var bound = Resolve("""
             fn main() -> Integer {
                 return 42;
             }
             """);
-
-        var bound = Resolve(module);
 
         Assert.Single(bound.Declarations);
     }
@@ -39,7 +50,6 @@ public sealed class NameResolverTests
             """);
 
         var bound = Resolve(module);
-
         var function = Assert.Single(bound.Declarations);
 
         Assert.Same(
@@ -50,15 +60,11 @@ public sealed class NameResolverTests
     [Fact]
     public void ResolvesIntegerLiteral()
     {
-        var module = Parse("""
+        var function = ResolveFunction("""
             fn main() -> Integer {
                 return 42;
             }
             """);
-
-        var bound = Resolve(module);
-
-        var function = Assert.Single(bound.Declarations);
 
         var statement = Assert.IsType<BoundReturnStatement>(
             Assert.Single(function.Body.Statements));
@@ -72,16 +78,12 @@ public sealed class NameResolverTests
     [Fact]
     public void ResolvesVariableDeclaration()
     {
-        var module = Parse("""
+        var function = ResolveFunction("""
             fn main() -> Integer {
                 let x: Integer = 42;
                 return x;
             }
             """);
-
-        var bound = Resolve(module);
-
-        var function = Assert.Single(bound.Declarations);
 
         var let = Assert.IsType<BoundLetStatement>(
             function.Body.Statements[0]);
@@ -93,16 +95,12 @@ public sealed class NameResolverTests
     [Fact]
     public void ResolvesIdentifier()
     {
-        var module = Parse("""
+        var function = ResolveFunction("""
             fn main() -> Integer {
                 let x: Integer = 42;
                 return x;
             }
             """);
-
-        var bound = Resolve(module);
-
-        var function = Assert.Single(bound.Declarations);
 
         var returnStatement = Assert.IsType<BoundReturnStatement>(
             function.Body.Statements[1]);
@@ -116,16 +114,12 @@ public sealed class NameResolverTests
     [Fact]
     public void IdentifierResolvesToVariableSymbol()
     {
-        var module = Parse("""
+        var function = ResolveFunction("""
             fn main() -> Integer {
                 let x: Integer = 42;
                 return x;
             }
             """);
-
-        var bound = Resolve(module);
-
-        var function = Assert.Single(bound.Declarations);
 
         var let = Assert.IsType<BoundLetStatement>(
             function.Body.Statements[0]);
@@ -145,17 +139,13 @@ public sealed class NameResolverTests
     [Fact]
     public void MultipleReferencesResolveToSameSymbol()
     {
-        var module = Parse("""
+        var function = ResolveFunction("""
             fn main() -> Integer {
                 let x: Integer = 42;
                 let y: Integer = x;
                 return x;
             }
             """);
-
-        var bound = Resolve(module);
-
-        var function = Assert.Single(bound.Declarations);
 
         var x = Assert.IsType<BoundLetStatement>(
             function.Body.Statements[0]);
@@ -189,17 +179,13 @@ public sealed class NameResolverTests
     [Fact]
     public void ResolvesReferenceToEarlierVariable()
     {
-        var module = Parse("""
+        var function = ResolveFunction("""
             fn main() -> Integer {
                 let x: Integer = 42;
                 let y: Integer = x;
                 return y;
             }
             """);
-
-        var bound = Resolve(module);
-
-        var function = Assert.Single(bound.Declarations);
 
         var x = Assert.IsType<BoundLetStatement>(
             function.Body.Statements[0]);
@@ -218,14 +204,12 @@ public sealed class NameResolverTests
     [Fact]
     public void RejectsUnknownIdentifier()
     {
-        var module = Parse("""
-            fn main() -> Integer {
-                return x;
-            }
-            """);
-
         var exception = Assert.Throws<Exception>(
-            () => Resolve(module));
+            () => Resolve("""
+                fn main() -> Integer {
+                    return x;
+                }
+                """));
 
         Assert.Contains(
             "The name 'x' could not be resolved",
@@ -235,15 +219,13 @@ public sealed class NameResolverTests
     [Fact]
     public void RejectsSelfReference()
     {
-        var module = Parse("""
-            fn main() -> Integer {
-                let x: Integer = x;
-                return x;
-            }
-            """);
-
         var exception = Assert.Throws<Exception>(
-            () => Resolve(module));
+            () => Resolve("""
+                fn main() -> Integer {
+                    let x: Integer = x;
+                    return x;
+                }
+                """));
 
         Assert.Contains(
             "The name 'x' could not be resolved",
@@ -253,16 +235,14 @@ public sealed class NameResolverTests
     [Fact]
     public void RejectsDuplicateVariable()
     {
-        var module = Parse("""
-            fn main() -> Integer {
-                let x: Integer = 42;
-                let x: Integer = 43;
-                return x;
-            }
-            """);
-
         var exception = Assert.Throws<Exception>(
-            () => Resolve(module));
+            () => Resolve("""
+                fn main() -> Integer {
+                    let x: Integer = 42;
+                    let x: Integer = 43;
+                    return x;
+                }
+                """));
 
         Assert.Contains(
             "The name 'x' is already declared in this scope",
@@ -272,17 +252,13 @@ public sealed class NameResolverTests
     [Fact]
     public void DifferentVariablesHaveDifferentSymbols()
     {
-        var module = Parse("""
+        var function = ResolveFunction("""
             fn main() -> Integer {
                 let x: Integer = 42;
                 let y: Integer = 43;
                 return x;
             }
             """);
-
-        var bound = Resolve(module);
-
-        var function = Assert.Single(bound.Declarations);
 
         var x = Assert.IsType<BoundLetStatement>(
             function.Body.Statements[0]);
@@ -297,13 +273,15 @@ public sealed class NameResolverTests
             returnStatement.Value);
 
         Assert.NotSame(x.Variable, y.Variable);
-        Assert.Same(x.Variable, identifier.Symbol.Declaration);
+        Assert.Same(
+            x.Variable,
+            identifier.Symbol.Declaration);
     }
 
     [Fact]
     public void DifferentFunctionsHaveIndependentScopes()
     {
-        var module = Parse("""
+        var bound = Resolve("""
             fn first() -> Integer {
                 let x: Integer = 42;
                 return x;
@@ -314,8 +292,6 @@ public sealed class NameResolverTests
                 return x;
             }
             """);
-
-        var bound = Resolve(module);
 
         Assert.Equal(2, bound.Declarations.Count);
 
@@ -358,15 +334,11 @@ public sealed class NameResolverTests
     [Fact]
     public void EmptyReturnProducesNoBoundExpression()
     {
-        var module = Parse("""
+        var function = ResolveFunction("""
             fn main() -> Void {
                 return;
             }
             """);
-
-        var bound = Resolve(module);
-
-        var function = Assert.Single(bound.Declarations);
 
         var statement = Assert.IsType<BoundReturnStatement>(
             Assert.Single(function.Body.Statements));
@@ -377,14 +349,10 @@ public sealed class NameResolverTests
     [Fact]
     public void EmptyFunctionProducesEmptyBoundBody()
     {
-        var module = Parse("""
+        var function = ResolveFunction("""
             fn main() -> Void {
             }
             """);
-
-        var bound = Resolve(module);
-
-        var function = Assert.Single(bound.Declarations);
 
         Assert.Empty(function.Body.Statements);
     }
@@ -459,15 +427,11 @@ public sealed class NameResolverTests
     [Fact]
     public void ResolvesAdditionExpression()
     {
-        var module = Parse("""
-        fn main() -> Integer {
-            return 20 + 22;
-        }
-        """);
-
-        var bound = new NameResolver().Resolve(module);
-
-        var function = Assert.Single(bound.Declarations);
+        var function = ResolveFunction("""
+            fn main() -> Integer {
+                return 20 + 22;
+            }
+            """);
 
         var statement = Assert.IsType<BoundReturnStatement>(
             Assert.Single(function.Body.Statements));
@@ -489,15 +453,11 @@ public sealed class NameResolverTests
     [Fact]
     public void ResolvesMultiplicationExpression()
     {
-        var module = Parse("""
-        fn main() -> Integer {
-            return 20 * 22;
-        }
-        """);
-
-        var bound = new NameResolver().Resolve(module);
-
-        var function = Assert.Single(bound.Declarations);
+        var function = ResolveFunction("""
+            fn main() -> Integer {
+                return 20 * 22;
+            }
+            """);
 
         var statement = Assert.IsType<BoundReturnStatement>(
             Assert.Single(function.Body.Statements));
@@ -514,5 +474,51 @@ public sealed class NameResolverTests
         Assert.Equal(
             TokenKind.Star,
             expression.Expression.OperatorKind);
+    }
+
+    [Fact]
+    public void ResolvesIntegerDivisionExpression()
+    {
+        var function = ResolveFunction("""
+            fn main() -> Integer {
+                return 42 / 2;
+            }
+            """);
+
+        var statement = Assert.IsType<BoundReturnStatement>(
+            Assert.Single(function.Body.Statements));
+
+        var expression = Assert.IsType<BoundBinaryExpression>(
+            statement.Value);
+
+        Assert.Equal(
+            TokenKind.Slash,
+            expression.Expression.OperatorKind);
+
+        Assert.IsType<BoundIntegerLiteralExpression>(expression.Left);
+        Assert.IsType<BoundIntegerLiteralExpression>(expression.Right);
+    }
+
+    [Fact]
+    public void ResolvesFloatDivisionExpression()
+    {
+        var function = ResolveFunction("""
+            fn main() -> Float {
+                return 42.0 / 2.0;
+            }
+            """);
+
+        var statement = Assert.IsType<BoundReturnStatement>(
+            Assert.Single(function.Body.Statements));
+
+        var expression = Assert.IsType<BoundBinaryExpression>(
+            statement.Value);
+
+        Assert.Equal(
+            TokenKind.Slash,
+            expression.Expression.OperatorKind);
+
+        Assert.IsType<BoundFloatLiteralExpression>(expression.Left);
+        Assert.IsType<BoundFloatLiteralExpression>(expression.Right);
     }
 }

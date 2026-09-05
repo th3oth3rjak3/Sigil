@@ -142,8 +142,10 @@ public sealed class TypeChecker
         return expression switch
         {
             BoundIntegerLiteralExpression integer =>
-                new TypedIntegerLiteralExpression(
-                    integer.Expression),
+                new TypedIntegerLiteralExpression(integer.Expression),
+
+            BoundFloatLiteralExpression flt =>
+                new TypedFloatLiteralExpression(flt.Expression),
 
             BoundIdentifierExpression identifier =>
                 CheckIdentifier(identifier),
@@ -163,27 +165,28 @@ public sealed class TypeChecker
         var left = CheckExpression(expression.Left);
         var right = CheckExpression(expression.Right);
 
-        if (expression.Expression.OperatorKind is not (
-            TokenKind.Plus
-            or TokenKind.Minus
-            or TokenKind.Star))
-        {
-            throw new Exception(
-                $"Unsupported binary operator: " +
-                $"{expression.Expression.OperatorKind}.");
-        }
-
         if (!AreSameType(left.Type, right.Type))
         {
             throw new Exception(
                 "Binary operator operands must have the same type.");
         }
 
-        if (left.Type is not IntegerType)
+        if (left.Type is not (IntegerType or FloatType))
         {
             throw new Exception(
                 "The binary arithmetic operators currently only support " +
-                "Integer operands.");
+                "Integer and Float operands.");
+        }
+
+        if (expression.Expression.OperatorKind is not (
+            TokenKind.Plus
+            or TokenKind.Minus
+            or TokenKind.Star
+            or TokenKind.Slash))
+        {
+            throw new Exception(
+                $"Unsupported binary operator: " +
+                $"{expression.Expression.OperatorKind}.");
         }
 
         return new TypedBinaryExpression(

@@ -177,4 +177,59 @@ public class LexerTests
             new Token(TokenKind.EndOfFile, "", 7, 0),
             lexer.NextToken());
     }
+
+    [Fact]
+    public void LexesIntegerDivisionExpression()
+    {
+        var lexer = new Lexer("20 / 22");
+
+        Assert.Equal(
+            new Token(TokenKind.IntegerLiteral, "20", 0, 2),
+            lexer.NextToken());
+
+        Assert.Equal(
+            new Token(TokenKind.Slash, "/", 3, 1),
+            lexer.NextToken());
+
+        Assert.Equal(
+            new Token(TokenKind.IntegerLiteral, "22", 5, 2),
+            lexer.NextToken());
+
+        Assert.Equal(
+            new Token(TokenKind.EndOfFile, "", 7, 0),
+            lexer.NextToken());
+    }
+
+    [Fact]
+    public void LexesFloatLiteral()
+    {
+        var lexer = new Lexer("42.5");
+
+        var token = lexer.NextToken();
+
+        Assert.Equal(TokenKind.FloatLiteral, token.Kind);
+        Assert.Equal("42.5", token.Lexeme);
+    }
+
+    [Fact]
+    public void LexesFloatDivisionExpression()
+    {
+        var lexer = new Lexer("20.0 / 2.0");
+
+        Assert.Equal(
+            new Token(TokenKind.FloatLiteral, "20.0", 0, 4),
+            lexer.NextToken());
+
+        Assert.Equal(
+            new Token(TokenKind.Slash, "/", 5, 1),
+            lexer.NextToken());
+
+        Assert.Equal(
+            new Token(TokenKind.FloatLiteral, "2.0", 7, 3),
+            lexer.NextToken());
+
+        Assert.Equal(
+            new Token(TokenKind.EndOfFile, "", 10, 0),
+            lexer.NextToken());
+    }
 }

@@ -93,6 +93,9 @@ public sealed class NameResolver
             IntegerLiteralExpression integer =>
                 new BoundIntegerLiteralExpression(integer),
 
+            FloatLiteralExpression flt =>
+                new BoundFloatLiteralExpression(flt),
+
             IdentifierExpression identifier =>
                 ResolveIdentifier(identifier, scope),
 

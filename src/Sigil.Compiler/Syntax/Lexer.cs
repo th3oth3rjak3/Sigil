@@ -21,57 +21,78 @@ public sealed class Lexer
         }
 
         _tokenStart = _position;
-        var current = _source[_position];
 
-        var token = current switch
+        return Current switch
         {
-            ';' => ReadSemicolon(),
-            '(' => ReadLeftParen(),
-            ')' => ReadRightParen(),
-            '{' => ReadLeftBrace(),
-            '}' => ReadRightBrace(),
-            ',' => ReadComma(),
-            ':' => ReadColon(),
+            ';' => ReadSingleCharacterToken(TokenKind.Semicolon),
+            '(' => ReadSingleCharacterToken(TokenKind.LeftParen),
+            ')' => ReadSingleCharacterToken(TokenKind.RightParen),
+            '{' => ReadSingleCharacterToken(TokenKind.LeftBrace),
+            '}' => ReadSingleCharacterToken(TokenKind.RightBrace),
+            ',' => ReadSingleCharacterToken(TokenKind.Comma),
+            ':' => ReadSingleCharacterToken(TokenKind.Colon),
+            '+' => ReadSingleCharacterToken(TokenKind.Plus),
+            '*' => ReadSingleCharacterToken(TokenKind.Star),
+            '/' => ReadSingleCharacterToken(TokenKind.Slash),
             '-' => ReadDash(),
             '=' => ReadEquals(),
-            '+' => ReadPlus(),
-            '*' => ReadStar(),
-            _ when char.IsLetter(current) || current == '_' => ReadIdentifier(),
-            _ when char.IsDigit(current) => ReadNumber(),
-            _ => throw new Exception($"Unexpected character '{current}' at position {_position}.")
-
+            _ when char.IsLetter(Current) || Current == '_' => ReadIdentifier(),
+            _ when char.IsDigit(Current) => ReadNumber(),
+            _ => throw new Exception(
+                $"Unexpected character '{Current}' at position {_position}.")
         };
+    }
 
-        return token;
+    private char Current =>
+        _position < _source.Length
+            ? _source[_position]
+            : '\0';
+
+    private char Peek(int offset = 1) =>
+        _position + offset < _source.Length
+            ? _source[_position + offset]
+            : '\0';
+
+    private void Advance()
+    {
+        _position++;
     }
 
     private Token MakeToken(TokenKind kind)
     {
         var length = _position - _tokenStart;
-        var lexeme = _source.Substring(_tokenStart, length);
-        return new Token(kind, lexeme, _tokenStart, length);
+
+        return new Token(
+            kind,
+            _source.Substring(_tokenStart, length),
+            _tokenStart,
+            length);
+    }
+
+    private Token ReadSingleCharacterToken(TokenKind kind)
+    {
+        Advance();
+        return MakeToken(kind);
     }
 
     private void SkipWhitespace()
     {
-        while (_position < _source.Length &&
-               char.IsWhiteSpace(_source[_position]))
+        while (char.IsWhiteSpace(Current))
         {
-            _position++;
+            Advance();
         }
     }
 
     private Token ReadIdentifier()
     {
-        while (_position < _source.Length &&
-               (char.IsLetterOrDigit(_source[_position]) ||
-                _source[_position] == '_'))
+        while (char.IsLetterOrDigit(Current) || Current == '_')
         {
-            _position++;
+            Advance();
         }
 
-        var length = _position - _tokenStart;
-        var lexeme = _source.Substring(_tokenStart, length);
+        var lexeme = _source.Substring(
+            _tokenStart,
+            _position - _tokenStart);
 
         var kind = lexeme switch
         {
@@ -81,106 +102,58 @@ public sealed class Lexer
             _ => TokenKind.Identifier
         };
 
-        return new Token(kind, lexeme, _tokenStart, length);
+        return MakeToken(kind);
     }
 
     private Token ReadNumber()
     {
-        while (_position < _source.Length && char.IsDigit(_source[_position]))
+        while (char.IsDigit(Current))
         {
-            _position++;
+            Advance();
         }
 
-        return MakeToken(TokenKind.IntegerLiteral);
-    }
+        if (Current != '.')
+        {
+            return MakeToken(TokenKind.IntegerLiteral);
+        }
 
-    private Token ReadSemicolon()
-    {
-        _position++;
-        return MakeToken(TokenKind.Semicolon);
-    }
+        if (!char.IsDigit(Peek()))
+        {
+            throw new Exception("Invalid floating-point literal.");
+        }
 
-    private Token ReadLeftParen()
-    {
-        _position++;
-        return MakeToken(TokenKind.LeftParen);
-    }
+        Advance();
 
-    private Token ReadRightParen()
-    {
-        _position++;
-        return MakeToken(TokenKind.RightParen);
-    }
+        while (char.IsDigit(Current))
+        {
+            Advance();
+        }
 
-    private Token ReadLeftBrace()
-    {
-        _position++;
-        return MakeToken(TokenKind.LeftBrace);
-    }
-
-    private Token ReadRightBrace()
-    {
-        _position++;
-        return MakeToken(TokenKind.RightBrace);
-    }
-
-    private Token ReadComma()
-    {
-        _position++;
-        return MakeToken(TokenKind.Comma);
-    }
-
-    private Token ReadColon()
-    {
-        _position++;
-        return MakeToken(TokenKind.Colon);
+        return MakeToken(TokenKind.FloatLiteral);
     }
 
     private Token ReadDash()
     {
-        // Look at the next character without consuming it.
-        if (_position + 1 < _source.Length &&
-            _source[_position + 1] == '>')
+        if (Peek() == '>')
         {
-            _position += 2;
+            Advance();
+            Advance();
             return MakeToken(TokenKind.Arrow);
         }
 
-        _position++;
-        return MakeToken(TokenKind.Minus);
+        return ReadSingleCharacterToken(TokenKind.Minus);
     }
 
     private Token ReadEquals()
     {
-        _position++;
+        Advance();
 
-        if (_position < _source.Length && _source[_position] == '=')
+        if (Current == '=')
         {
-            _position++;
-
-            return new Token(
-                TokenKind.EqualsEquals,
-                "==",
-                _tokenStart,
-                2);
+            Advance();
+            return MakeToken(TokenKind.EqualsEquals);
         }
 
-        return new Token(
-            TokenKind.Equals,
-            "=",
-            _tokenStart,
-            1);
-    }
-
-    private Token ReadPlus()
-    {
-        _position++;
-        return new Token(TokenKind.Plus, "+", _tokenStart, 1);
-    }
-
-    private Token ReadStar()
-    {
-        _position++;
-        return new Token(TokenKind.Star, "*", _tokenStart, 1);
+        return MakeToken(TokenKind.Equals);
     }
 }

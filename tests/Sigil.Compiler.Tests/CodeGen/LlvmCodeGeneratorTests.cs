@@ -88,4 +88,42 @@ public sealed class LlvmCodeGeneratorTests
 
         Assert.Contains("mul i64", ir);
     }
+
+    [Fact]
+    public void GeneratesIntegerDivisionExpression()
+    {
+        var module = Parse("""
+        fn main() -> Integer {
+            let x: Integer = 42;
+            let y: Integer = 2;
+            return x / y;
+        }
+        """);
+
+        var bound = new NameResolver().Resolve(module);
+        var typed = new TypeChecker().Check(bound);
+
+        var ir = new LlvmCodeGenerator().Generate(typed);
+
+        Assert.Contains("sdiv i64", ir);
+    }
+
+    [Fact]
+    public void GeneratesFloatDivisionExpression()
+    {
+        var module = Parse("""
+        fn main() -> Float {
+            let x: Float = 42.0;
+            let y: Float = 2.0;
+            return x / y;
+        }
+        """);
+
+        var bound = new NameResolver().Resolve(module);
+        var typed = new TypeChecker().Check(bound);
+
+        var ir = new LlvmCodeGenerator().Generate(typed);
+
+        Assert.Contains("fdiv double", ir);
+    }
 }

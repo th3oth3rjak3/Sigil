@@ -5,21 +5,53 @@ namespace Sigil.Compiler.Tests.Semantics;
 
 public sealed class TypeCheckerTests
 {
+    private static TypedModule TypeCheck(string source)
+    {
+        var module = new Parser(new Lexer(source)).Parse();
+        var bound = new NameResolver().Resolve(module);
+
+        return new TypeChecker().Check(bound);
+    }
+
+    private static TypedFunctionDeclaration GetFunction(TypedModule module)
+    {
+        return Assert.Single(module.Declarations);
+    }
+
+    private static TypedReturnStatement GetReturnStatement(
+        TypedFunctionDeclaration function,
+        int index = 0)
+    {
+        return Assert.IsType<TypedReturnStatement>(
+            function.Body.Statements[index]);
+    }
+
+    private static TypedLetStatement GetLetStatement(
+        TypedFunctionDeclaration function,
+        int index = 0)
+    {
+        return Assert.IsType<TypedLetStatement>(
+            function.Body.Statements[index]);
+    }
+
+    private static TypedBinaryExpression GetBinaryExpression(
+        TypedReturnStatement statement)
+    {
+        return Assert.IsType<TypedBinaryExpression>(
+            statement.Value);
+    }
+
     [Fact]
     public void IntegerLiteralHasIntegerType()
     {
-        var module = Parse("""
+        var typed = TypeCheck("""
             fn main() -> Integer {
                 return 42;
             }
             """);
 
-        var bound = new NameResolver().Resolve(module);
-        var typed = new TypeChecker().Check(bound);
-
-        var function = Assert.Single(typed.Declarations);
-        var statement = Assert.IsType<TypedReturnStatement>(
-            Assert.Single(function.Body.Statements));
+        var function = GetFunction(typed);
+        var statement = GetReturnStatement(function);
 
         Assert.NotNull(statement.Value);
         Assert.IsType<IntegerType>(statement.Value.Type);
@@ -28,16 +60,13 @@ public sealed class TypeCheckerTests
     [Fact]
     public void FunctionReturnTypeIsResolved()
     {
-        var module = Parse("""
+        var typed = TypeCheck("""
             fn main() -> Integer {
                 return 42;
             }
             """);
 
-        var bound = new NameResolver().Resolve(module);
-        var typed = new TypeChecker().Check(bound);
-
-        var function = Assert.Single(typed.Declarations);
+        var function = GetFunction(typed);
 
         Assert.IsType<IntegerType>(function.ReturnType);
     }
@@ -45,18 +74,14 @@ public sealed class TypeCheckerTests
     [Fact]
     public void LetInitializerHasDeclaredType()
     {
-        var module = Parse("""
+        var typed = TypeCheck("""
             fn main() -> Void {
                 let x: Integer = 42;
             }
             """);
 
-        var bound = new NameResolver().Resolve(module);
-        var typed = new TypeChecker().Check(bound);
-
-        var function = Assert.Single(typed.Declarations);
-        var statement = Assert.IsType<TypedLetStatement>(
-            Assert.Single(function.Body.Statements));
+        var function = GetFunction(typed);
+        var statement = GetLetStatement(function);
 
         Assert.IsType<IntegerType>(statement.Type);
         Assert.IsType<IntegerType>(statement.Initializer.Type);
@@ -65,19 +90,15 @@ public sealed class TypeCheckerTests
     [Fact]
     public void IntegerVariableReferenceHasIntegerType()
     {
-        var module = Parse("""
+        var typed = TypeCheck("""
             fn main() -> Integer {
                 let x: Integer = 42;
                 return x;
             }
             """);
 
-        var bound = new NameResolver().Resolve(module);
-        var typed = new TypeChecker().Check(bound);
-
-        var function = Assert.Single(typed.Declarations);
-        var statement = Assert.IsType<TypedReturnStatement>(
-            Assert.Single(function.Body.Statements.Skip(1)));
+        var function = GetFunction(typed);
+        var statement = GetReturnStatement(function, 1);
 
         var identifier = Assert.IsType<TypedIdentifierExpression>(
             statement.Value);
@@ -88,15 +109,11 @@ public sealed class TypeCheckerTests
     [Fact]
     public void IntegerInitializerMatchesIntegerDeclaration()
     {
-        var module = Parse("""
+        var typed = TypeCheck("""
             fn main() -> Void {
                 let x: Integer = 42;
             }
             """);
-
-        var bound = new NameResolver().Resolve(module);
-
-        var typed = new TypeChecker().Check(bound);
 
         Assert.NotNull(typed);
     }
@@ -104,15 +121,11 @@ public sealed class TypeCheckerTests
     [Fact]
     public void IntegerReturnMatchesIntegerFunction()
     {
-        var module = Parse("""
+        var typed = TypeCheck("""
             fn main() -> Integer {
                 return 42;
             }
             """);
-
-        var bound = new NameResolver().Resolve(module);
-
-        var typed = new TypeChecker().Check(bound);
 
         Assert.NotNull(typed);
     }
@@ -120,19 +133,14 @@ public sealed class TypeCheckerTests
     [Fact]
     public void EmptyReturnIsValidInVoidFunction()
     {
-        var module = Parse("""
+        var typed = TypeCheck("""
             fn main() -> Void {
                 return;
             }
             """);
 
-        var bound = new NameResolver().Resolve(module);
-
-        var typed = new TypeChecker().Check(bound);
-
-        var function = Assert.Single(typed.Declarations);
-        var statement = Assert.IsType<TypedReturnStatement>(
-            Assert.Single(function.Body.Statements));
+        var function = GetFunction(typed);
+        var statement = GetReturnStatement(function);
 
         Assert.Null(statement.Value);
     }
@@ -140,16 +148,12 @@ public sealed class TypeCheckerTests
     [Fact]
     public void VoidFunctionMayHaveNoReturnStatement()
     {
-        var module = Parse("""
+        var typed = TypeCheck("""
             fn main() -> Void {
             }
             """);
 
-        var bound = new NameResolver().Resolve(module);
-
-        var typed = new TypeChecker().Check(bound);
-
-        var function = Assert.Single(typed.Declarations);
+        var function = GetFunction(typed);
 
         Assert.Empty(function.Body.Statements);
     }
@@ -157,11 +161,11 @@ public sealed class TypeCheckerTests
     [Fact]
     public void IntegerReturnInVoidFunctionIsRejected()
     {
-        var module = Parse("""
+        var module = new Parser(new Lexer("""
             fn main() -> Void {
                 return 42;
             }
-            """);
+            """)).Parse();
 
         var bound = new NameResolver().Resolve(module);
 
@@ -172,11 +176,11 @@ public sealed class TypeCheckerTests
     [Fact]
     public void EmptyReturnInIntegerFunctionIsRejected()
     {
-        var module = Parse("""
+        var module = new Parser(new Lexer("""
             fn main() -> Integer {
                 return;
             }
-            """);
+            """)).Parse();
 
         var bound = new NameResolver().Resolve(module);
 
@@ -187,11 +191,11 @@ public sealed class TypeCheckerTests
     [Fact]
     public void IntegerInitializerInFloatVariableIsRejected()
     {
-        var module = Parse("""
+        var module = new Parser(new Lexer("""
             fn main() -> Void {
                 let x: Float = 42;
             }
-            """);
+            """)).Parse();
 
         var bound = new NameResolver().Resolve(module);
 
@@ -202,11 +206,11 @@ public sealed class TypeCheckerTests
     [Fact]
     public void UnknownVariableTypeIsRejected()
     {
-        var module = Parse("""
+        var module = new Parser(new Lexer("""
             fn main() -> Void {
                 let x: Nope = 42;
             }
-            """);
+            """)).Parse();
 
         var bound = new NameResolver().Resolve(module);
 
@@ -217,11 +221,11 @@ public sealed class TypeCheckerTests
     [Fact]
     public void UnknownFunctionReturnTypeIsRejected()
     {
-        var module = Parse("""
+        var module = new Parser(new Lexer("""
             fn main() -> Nope {
                 return 42;
             }
-            """);
+            """)).Parse();
 
         var bound = new NameResolver().Resolve(module);
 
@@ -229,33 +233,18 @@ public sealed class TypeCheckerTests
             () => new TypeChecker().Check(bound));
     }
 
-    private static Module Parse(string source)
-    {
-        var lexer = new Lexer(source);
-        var parser = new Parser(lexer);
-
-        return parser.Parse();
-    }
-
     [Fact]
     public void AdditionExpressionHasIntegerType()
     {
-        var module = Parse("""
-        fn main() -> Integer {
-            return 20 + 22;
-        }
-        """);
+        var typed = TypeCheck("""
+            fn main() -> Integer {
+                return 20 + 22;
+            }
+            """);
 
-        var bound = new NameResolver().Resolve(module);
-        var typed = new TypeChecker().Check(bound);
-
-        var function = Assert.Single(typed.Declarations);
-
-        var statement = Assert.IsType<TypedReturnStatement>(
-            Assert.Single(function.Body.Statements));
-
-        var expression = Assert.IsType<TypedBinaryExpression>(
-            statement.Value);
+        var function = GetFunction(typed);
+        var statement = GetReturnStatement(function);
+        var expression = GetBinaryExpression(statement);
 
         Assert.IsType<IntegerType>(expression.Type);
         Assert.IsType<TypedIntegerLiteralExpression>(expression.Left);
@@ -265,25 +254,55 @@ public sealed class TypeCheckerTests
     [Fact]
     public void MultiplicationExpressionHasIntegerType()
     {
-        var module = Parse("""
-        fn main() -> Integer {
-            return 20 * 22;
-        }
-        """);
+        var typed = TypeCheck("""
+            fn main() -> Integer {
+                return 20 * 22;
+            }
+            """);
 
-        var bound = new NameResolver().Resolve(module);
-        var typed = new TypeChecker().Check(bound);
-
-        var function = Assert.Single(typed.Declarations);
-
-        var statement = Assert.IsType<TypedReturnStatement>(
-            Assert.Single(function.Body.Statements));
-
-        var expression = Assert.IsType<TypedBinaryExpression>(
-            statement.Value);
+        var function = GetFunction(typed);
+        var statement = GetReturnStatement(function);
+        var expression = GetBinaryExpression(statement);
 
         Assert.IsType<IntegerType>(expression.Type);
         Assert.IsType<TypedIntegerLiteralExpression>(expression.Left);
         Assert.IsType<TypedIntegerLiteralExpression>(expression.Right);
+    }
+
+    [Fact]
+    public void ChecksFloatLiteralExpression()
+    {
+        var typed = TypeCheck("""
+            fn main() -> Float {
+                return 42.5;
+            }
+            """);
+
+        var function = GetFunction(typed);
+        var statement = GetReturnStatement(function);
+
+        var expression = Assert.IsType<TypedFloatLiteralExpression>(
+            statement.Value);
+
+        Assert.IsType<FloatType>(expression.Type);
+    }
+
+    [Fact]
+    public void ChecksFloatDivisionExpression()
+    {
+        var typed = TypeCheck("""
+            fn main() -> Float {
+                return 42.0 / 2.0;
+            }
+            """);
+
+        var function = GetFunction(typed);
+        var statement = GetReturnStatement(function);
+        var expression = GetBinaryExpression(statement);
+
+        Assert.Equal(TokenKind.Slash, expression.Expression.OperatorKind);
+        Assert.IsType<FloatType>(expression.Type);
+        Assert.IsType<TypedFloatLiteralExpression>(expression.Left);
+        Assert.IsType<TypedFloatLiteralExpression>(expression.Right);
     }
 }
