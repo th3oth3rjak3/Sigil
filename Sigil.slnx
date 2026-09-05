@@ -1,4 +1,1 @@
-<Solution>
-  <Project Path="Sigil.Cli/Sigil.Cli.csproj" />
-  <Project Path="Sigil.Compiler/Sigil.Compiler.csproj" />
-</Solution>
+<Solution />
