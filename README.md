@@ -74,13 +74,6 @@ fn main() -> Integer {
 
 This program is compiled to LLVM IR and then to a native executable.
 
-Arithmetic currently includes:
-
-- Integer addition (`+`)
-- Integer subtraction (`-`)
-
-Variables are resolved, type checked, lowered to LLVM storage, and loaded when referenced.
-
 ---
 
 # Roadmap
