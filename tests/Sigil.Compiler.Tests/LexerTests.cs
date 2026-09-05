@@ -79,4 +79,13 @@ public class LexerTests
         Assert.Equal(new Token(TokenKind.Colon, ":", 0, 1), lexer.NextToken());
         Assert.Equal(new Token(TokenKind.EndOfFile, "", 1, 0), lexer.NextToken());
     }
+
+    [Fact]
+    public void LexesIntegerLiteral()
+    {
+        var lexer = new Lexer("42");
+
+        Assert.Equal(new Token(TokenKind.IntegerLiteral, "42", 0, 2), lexer.NextToken());
+        Assert.Equal(new Token(TokenKind.EndOfFile, "", 2, 0), lexer.NextToken());
+    }
 }

@@ -25,14 +25,15 @@ public sealed class Lexer
 
         var token = current switch
         {
-            ';' => MakeToken(TokenKind.Semicolon, 1),
-            '(' => MakeToken(TokenKind.LeftParen, 1),
-            ')' => MakeToken(TokenKind.RightParen, 1),
-            '{' => MakeToken(TokenKind.LeftBrace, 1),
-            '}' => MakeToken(TokenKind.RightBrace, 1),
-            ',' => MakeToken(TokenKind.Comma, 1),
-            ':' => MakeToken(TokenKind.Colon, 1),
+            ';' => ReadSemicolon(),
+            '(' => ReadLeftParen(),
+            ')' => ReadRightParen(),
+            '{' => ReadLeftBrace(),
+            '}' => ReadRightBrace(),
+            ',' => ReadComma(),
+            ':' => ReadColon(),
             var ch when char.IsLetter(ch) || ch == '_' => ReadIdentifier(),
+            var ch when char.IsDigit(ch) => ReadNumber(),
             _ => throw new Exception($"Unexpected character '{current}' at position {_position}.")
 
         };
@@ -40,10 +41,10 @@ public sealed class Lexer
         return token;
     }
 
-    private Token MakeToken(TokenKind kind, int length)
+    private Token MakeToken(TokenKind kind)
     {
+        var length = _position - _tokenStart;
         var lexeme = _source.Substring(_tokenStart, length);
-        _position += length;
         return new Token(kind, lexeme, _tokenStart, length);
     }
 
@@ -75,5 +76,57 @@ public sealed class Lexer
         };
 
         return new Token(kind, lexeme, _tokenStart, length);
+    }
+
+    private Token ReadNumber()
+    {
+        while (_position < _source.Length && char.IsDigit(_source[_position]))
+        {
+            _position++;
+        }
+
+        return MakeToken(TokenKind.IntegerLiteral);
+    }
+
+    private Token ReadSemicolon()
+    {
+        _position++;
+        return MakeToken(TokenKind.Semicolon);
+    }
+
+    private Token ReadLeftParen()
+    {
+        _position++;
+        return MakeToken(TokenKind.LeftParen);
+    }
+
+    private Token ReadRightParen()
+    {
+        _position++;
+        return MakeToken(TokenKind.RightParen);
+    }
+
+    private Token ReadLeftBrace()
+    {
+        _position++;
+        return MakeToken(TokenKind.LeftBrace);
+    }
+
+    private Token ReadRightBrace()
+    {
+        _position++;
+        return MakeToken(TokenKind.RightBrace);
+    }
+
+    private Token ReadComma()
+    {
+        _position++;
+        return MakeToken(TokenKind.Comma);
+    }
+
+    private Token ReadColon()
+    {
+        _position++;
+        return MakeToken(TokenKind.Colon);
     }
 }
