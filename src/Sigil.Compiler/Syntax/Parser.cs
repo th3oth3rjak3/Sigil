@@ -50,9 +50,33 @@ public class Parser(Lexer lexer)
             body);
     }
 
-    private List<string> ParseParameters()
+    private List<Parameter> ParseParameters()
     {
-        return [];
+        var parameters = new List<Parameter>();
+
+        if (_current.Kind == TokenKind.RightParen)
+        {
+            return parameters;
+        }
+
+        parameters.Add(ParseParameter());
+
+        while (_current.Kind == TokenKind.Comma)
+        {
+            Advance();
+            parameters.Add(ParseParameter());
+        }
+
+        return parameters;
+    }
+
+    private Parameter ParseParameter()
+    {
+        var name = Expect(TokenKind.Identifier);
+        Expect(TokenKind.Colon);
+        var type = Expect(TokenKind.Identifier);
+
+        return new Parameter(name.Lexeme, type.Lexeme);
     }
 
     private Block ParseBlock()

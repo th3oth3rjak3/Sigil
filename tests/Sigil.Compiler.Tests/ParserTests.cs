@@ -85,4 +85,54 @@ public class ParserTests
         Assert.Equal("Void", function.ReturnType);
         Assert.Null(statement.Value);
     }
+
+    [Fact]
+    public void ParsesFunctionParameters()
+    {
+        var parser = new Parser(new Lexer("""
+        fn add(a: Integer, b: Integer) -> Integer {
+            return 42;
+        }
+        """));
+
+        var module = parser.Parse();
+
+        var function = Assert.IsType<FunctionDeclaration>(
+            module.Declarations[0]);
+
+        Assert.Equal([new Parameter("a", "Integer"), new Parameter("b", "Integer")], function.Parameters);
+    }
+
+    [Fact]
+    public void RejectsParameterWithoutName()
+    {
+        var parser = new Parser(new Lexer("""
+        fn add(: Integer) -> Integer {
+        }
+        """));
+
+        Assert.Throws<Exception>(parser.Parse);
+    }
+
+    [Fact]
+    public void RejectsParameterWithoutType()
+    {
+        var parser = new Parser(new Lexer("""
+        fn add(a:) -> Integer {
+        }
+        """));
+
+        Assert.Throws<Exception>(parser.Parse);
+    }
+
+    [Fact]
+    public void RejectsParametersWithoutComma()
+    {
+        var parser = new Parser(new Lexer("""
+        fn add(a: Integer b: Integer) -> Integer {
+        }
+        """));
+
+        Assert.Throws<Exception>(parser.Parse);
+    }
 }
