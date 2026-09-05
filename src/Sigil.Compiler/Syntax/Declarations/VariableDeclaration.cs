@@ -1,4 +1,4 @@
-namespace Sigil.Compiler.Syntax;
+namespace Sigil.Compiler.Syntax.Declarations;
 
 public sealed class VariableDeclaration(string name, string type): Declaration
 {

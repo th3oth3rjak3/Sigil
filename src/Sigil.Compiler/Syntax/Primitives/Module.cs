@@ -1,4 +1,6 @@
-namespace Sigil.Compiler.Syntax;
+using Sigil.Compiler.Syntax.Declarations;
+
+namespace Sigil.Compiler.Syntax.Primitives;
 
 public sealed class Module(IReadOnlyList<Declaration> declarations)
 {

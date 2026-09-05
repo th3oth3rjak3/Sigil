@@ -1,4 +1,4 @@
-namespace Sigil.Compiler.Syntax;
+namespace Sigil.Compiler.Syntax.Expressions;
 
 public sealed class FloatLiteralExpression(double value): Expression
 {

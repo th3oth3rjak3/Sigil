@@ -1,4 +1,6 @@
-namespace Sigil.Compiler.Syntax;
+using Sigil.Compiler.Syntax.Primitives;
+
+namespace Sigil.Compiler.Syntax.Declarations;
 
 public sealed class FunctionDeclaration(
     string name,

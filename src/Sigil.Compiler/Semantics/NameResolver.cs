@@ -1,4 +1,7 @@
-using Sigil.Compiler.Syntax;
+using Sigil.Compiler.Syntax.Declarations;
+using Sigil.Compiler.Syntax.Expressions;
+using Sigil.Compiler.Syntax.Primitives;
+using Sigil.Compiler.Syntax.Statements;
 
 namespace Sigil.Compiler.Semantics;
 

@@ -1,4 +1,6 @@
-namespace Sigil.Compiler.Syntax;
+using Sigil.Compiler.Syntax.Primitives;
+
+namespace Sigil.Compiler.Syntax.Expressions;
 
 public sealed class BinaryExpression(
     Expression left,

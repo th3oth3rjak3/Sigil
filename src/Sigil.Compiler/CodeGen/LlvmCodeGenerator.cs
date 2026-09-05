@@ -1,6 +1,7 @@
 using LLVMSharp.Interop;
 using Sigil.Compiler.Semantics;
-using Sigil.Compiler.Syntax;
+using Sigil.Compiler.Syntax.Declarations;
+using Sigil.Compiler.Syntax.Primitives;
 
 namespace Sigil.Compiler.CodeGen;
 

@@ -1,4 +1,6 @@
-namespace Sigil.Compiler.Syntax;
+using Sigil.Compiler.Syntax.Expressions;
+
+namespace Sigil.Compiler.Syntax.Statements;
 
 public sealed class LetStatement(
     string name,

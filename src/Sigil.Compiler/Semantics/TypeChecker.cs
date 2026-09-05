@@ -1,6 +1,7 @@
 namespace Sigil.Compiler.Semantics;
 
-using Sigil.Compiler.Syntax;
+using Sigil.Compiler.Syntax.Declarations;
+using Sigil.Compiler.Syntax.Primitives;
 
 public sealed class TypeChecker
 {

@@ -1,6 +1,7 @@
 using Sigil.Compiler.CodeGen;
 using Sigil.Compiler.Semantics;
 using Sigil.Compiler.Syntax;
+using Sigil.Compiler.Syntax.Primitives;
 
 namespace Sigil.Compiler;
 

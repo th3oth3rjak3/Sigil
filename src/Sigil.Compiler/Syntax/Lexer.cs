@@ -1,3 +1,5 @@
+using Sigil.Compiler.Syntax.Primitives;
+
 namespace Sigil.Compiler.Syntax;
 
 public sealed class Lexer

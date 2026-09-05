@@ -1,4 +1,4 @@
-using Sigil.Compiler.Syntax;
+using Sigil.Compiler.Syntax.Expressions;
 
 namespace Sigil.Compiler.Semantics;
 

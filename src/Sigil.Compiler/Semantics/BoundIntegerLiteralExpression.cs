@@ -1,6 +1,6 @@
 namespace Sigil.Compiler.Semantics;
 
-using Sigil.Compiler.Syntax;
+using Sigil.Compiler.Syntax.Expressions;
 
 public sealed class BoundIntegerLiteralExpression(IntegerLiteralExpression expression): BoundExpression
 {

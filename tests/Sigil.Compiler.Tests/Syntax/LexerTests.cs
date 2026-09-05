@@ -1,4 +1,5 @@
 using Sigil.Compiler.Syntax;
+using Sigil.Compiler.Syntax.Primitives;
 
 namespace Sigil.Compiler.Tests.Syntax;
 

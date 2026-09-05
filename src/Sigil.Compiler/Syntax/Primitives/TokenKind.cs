@@ -1,4 +1,4 @@
-namespace Sigil.Compiler.Syntax;
+namespace Sigil.Compiler.Syntax.Primitives;
 
 public enum TokenKind
 {

@@ -1,6 +1,6 @@
 namespace Sigil.Compiler.Semantics;
 
-using Sigil.Compiler.Syntax;
+using Sigil.Compiler.Syntax.Declarations;
 
 public sealed class TypedFunctionDeclaration(
     FunctionDeclaration declaration,
