@@ -1,0 +1,5 @@
+fn main() -> Integer {
+    let x: Integer = 20;
+    let y: Integer = 22;
+    return x + y;
+}
