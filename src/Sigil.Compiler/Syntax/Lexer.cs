@@ -34,6 +34,7 @@ public sealed class Lexer
             ':' => ReadColon(),
             '-' => ReadDash(),
             '=' => ReadEquals(),
+            '+' => ReadPlus(),
             var ch when char.IsLetter(ch) || ch == '_' => ReadIdentifier(),
             var ch when char.IsDigit(ch) => ReadNumber(),
             _ => throw new Exception($"Unexpected character '{current}' at position {_position}.")
@@ -168,5 +169,11 @@ public sealed class Lexer
             "=",
             _tokenStart,
             1);
+    }
+
+    private Token ReadPlus()
+    {
+        _position++;
+        return new Token(TokenKind.Plus, "+", _tokenStart, 1);
     }
 }

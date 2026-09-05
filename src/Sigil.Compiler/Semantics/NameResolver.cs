@@ -84,13 +84,23 @@ public sealed class NameResolver
         return new BoundReturnStatement(statement, value);
     }
 
-    private BoundExpression ResolveExpression(Expression expression, Scope scope)
+    private BoundExpression ResolveExpression(
+        Expression expression,
+        Scope scope)
     {
         return expression switch
         {
-            IntegerLiteralExpression integer => new BoundIntegerLiteralExpression(integer),
-            IdentifierExpression identifier => ResolveIdentifier(identifier, scope),
-            _ => throw new Exception($"Unsupported expression: {expression.GetType().Name}.")
+            IntegerLiteralExpression integer =>
+                new BoundIntegerLiteralExpression(integer),
+
+            IdentifierExpression identifier =>
+                ResolveIdentifier(identifier, scope),
+
+            BinaryExpression binary =>
+                ResolveBinaryExpression(binary, scope),
+
+            _ => throw new Exception(
+                $"Unsupported expression: {expression.GetType().Name}.")
         };
     }
 
@@ -98,5 +108,23 @@ public sealed class NameResolver
     {
         var symbol = scope.Resolve(expression.Name);
         return new BoundIdentifierExpression(expression, symbol);
+    }
+
+    private BoundBinaryExpression ResolveBinaryExpression(
+    BinaryExpression expression,
+    Scope scope)
+    {
+        var left = ResolveExpression(
+            expression.Left,
+            scope);
+
+        var right = ResolveExpression(
+            expression.Right,
+            scope);
+
+        return new BoundBinaryExpression(
+            expression,
+            left,
+            right);
     }
 }

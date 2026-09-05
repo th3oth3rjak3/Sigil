@@ -133,4 +133,26 @@ public class LexerTests
         Assert.Equal(new Token(TokenKind.EqualsEquals, "==", 0, 2), lexer.NextToken());
         Assert.Equal(new Token(TokenKind.EndOfFile, "", 2, 0), lexer.NextToken());
     }
+
+    [Fact]
+    public void LexesAdditionExpression()
+    {
+        var lexer = new Lexer("20 + 22");
+
+        Assert.Equal(
+            new Token(TokenKind.IntegerLiteral, "20", 0, 2),
+            lexer.NextToken());
+
+        Assert.Equal(
+            new Token(TokenKind.Plus, "+", 3, 1),
+            lexer.NextToken());
+
+        Assert.Equal(
+            new Token(TokenKind.IntegerLiteral, "22", 5, 2),
+            lexer.NextToken());
+
+        Assert.Equal(
+            new Token(TokenKind.EndOfFile, "", 7, 0),
+            lexer.NextToken());
+    }
 }

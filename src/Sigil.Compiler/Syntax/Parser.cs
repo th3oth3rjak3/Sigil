@@ -147,10 +147,31 @@ public class Parser(Lexer lexer)
 
     private Expression ParseExpression()
     {
+        var left = ParsePrimaryExpression();
+
+        while (_current.Kind == TokenKind.Plus)
+        {
+            var operatorKind = _current.Kind;
+            Advance();
+
+            var right = ParsePrimaryExpression();
+
+            left = new BinaryExpression(
+                left,
+                operatorKind,
+                right);
+        }
+
+        return left;
+    }
+
+    private Expression ParsePrimaryExpression()
+    {
         return _current.Kind switch
         {
             TokenKind.IntegerLiteral => ParseIntegerLiteral(),
             TokenKind.Identifier => ParseIdentifierExpression(),
+
             _ => throw new Exception(
                 $"Unexpected token {_current.Kind} at position {_current.Position}.")
         };

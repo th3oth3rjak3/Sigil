@@ -31,4 +31,23 @@ public sealed class LlvmCodeGeneratorTests
 
         return parser.Parse();
     }
+
+    [Fact]
+    public void GeneratesAdditionExpression()
+    {
+        var module = Parse("""
+        fn main() -> Integer {
+            let x: Integer = 20;
+            let y: Integer = 22;
+            return x + y;
+        }
+        """);
+
+        var bound = new NameResolver().Resolve(module);
+        var typed = new TypeChecker().Check(bound);
+
+        var ir = new LlvmCodeGenerator().Generate(typed);
+
+        Assert.Contains("add i64", ir);
+    }
 }

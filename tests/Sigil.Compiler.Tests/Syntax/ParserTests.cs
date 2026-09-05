@@ -174,4 +174,34 @@ public class ParserTests
 
         Assert.Equal("x", identifier.Name);
     }
+
+    [Fact]
+    public void ParsesAdditionExpression()
+    {
+        var module = new Parser(new Lexer("""
+        fn main() -> Integer {
+            return 20 + 22;
+        }
+        """)).Parse();
+
+        var function = Assert.IsType<FunctionDeclaration>(
+            Assert.Single(module.Declarations));
+
+        var statement = Assert.IsType<ReturnStatement>(
+            Assert.Single(function.Body.Statements));
+
+        var expression = Assert.IsType<BinaryExpression>(
+            statement.Value);
+
+        Assert.Equal(TokenKind.Plus, expression.OperatorKind);
+
+        var left = Assert.IsType<IntegerLiteralExpression>(
+            expression.Left);
+
+        var right = Assert.IsType<IntegerLiteralExpression>(
+            expression.Right);
+
+        Assert.Equal(20, left.Value);
+        Assert.Equal(22, right.Value);
+    }
 }

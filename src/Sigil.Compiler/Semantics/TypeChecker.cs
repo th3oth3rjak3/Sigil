@@ -148,10 +148,45 @@ public sealed class TypeChecker
             BoundIdentifierExpression identifier =>
                 CheckIdentifier(identifier),
 
+            BoundBinaryExpression binary =>
+                CheckBinaryExpression(binary),
+
             _ => throw new Exception(
                 $"Unsupported bound expression: " +
                 $"{expression.GetType().Name}.")
         };
+    }
+
+    private TypedBinaryExpression CheckBinaryExpression(
+        BoundBinaryExpression expression)
+    {
+        var left = CheckExpression(expression.Left);
+        var right = CheckExpression(expression.Right);
+
+        if (expression.Expression.OperatorKind != TokenKind.Plus)
+        {
+            throw new Exception(
+                $"Unsupported binary operator: " +
+                $"{expression.Expression.OperatorKind}.");
+        }
+
+        if (!AreSameType(left.Type, right.Type))
+        {
+            throw new Exception(
+                "Binary operator operands must have the same type.");
+        }
+
+        if (left.Type is not IntegerType)
+        {
+            throw new Exception(
+                "The '+' operator currently only supports Integer operands.");
+        }
+
+        return new TypedBinaryExpression(
+            expression.Expression,
+            left,
+            right,
+            left.Type);
     }
 
     private TypedIdentifierExpression CheckIdentifier(

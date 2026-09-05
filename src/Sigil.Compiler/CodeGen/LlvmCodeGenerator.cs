@@ -1,5 +1,6 @@
 using LLVMSharp.Interop;
 using Sigil.Compiler.Semantics;
+using Sigil.Compiler.Syntax;
 
 namespace Sigil.Compiler.CodeGen;
 
@@ -42,11 +43,15 @@ public sealed class LlvmCodeGenerator
 
         builder.PositionAtEnd(entry);
 
+        var locals =
+            new Dictionary<Declaration, LLVMValueRef>();
+
         foreach (var statement in function.Body.Statements)
         {
             GenerateStatement(
                 context,
                 builder,
+                locals,
                 statement);
         }
     }
@@ -54,8 +59,32 @@ public sealed class LlvmCodeGenerator
     private static void GenerateStatement(
         LLVMContextRef context,
         LLVMBuilderRef builder,
+        Dictionary<Declaration, LLVMValueRef> locals,
         TypedStatement statement)
     {
+        if (statement is TypedLetStatement let)
+        {
+            var value = GenerateExpression(
+                context,
+                builder,
+                locals,
+                let.Initializer);
+
+            var storage = builder.BuildAlloca(
+                GetLlvmType(context, let.Type),
+                let.Variable.Name);
+
+            builder.BuildStore(
+                value,
+                storage);
+
+            locals.Add(
+                let.Variable,
+                storage);
+
+            return;
+        }
+
         if (statement is TypedReturnStatement returnStatement)
         {
             if (returnStatement.Value is null)
@@ -66,6 +95,8 @@ public sealed class LlvmCodeGenerator
 
             var value = GenerateExpression(
                 context,
+                builder,
+                locals,
                 returnStatement.Value);
 
             builder.BuildRet(value);
@@ -78,6 +109,8 @@ public sealed class LlvmCodeGenerator
 
     private static LLVMValueRef GenerateExpression(
         LLVMContextRef context,
+        LLVMBuilderRef builder,
+        Dictionary<Declaration, LLVMValueRef> locals,
         TypedExpression expression)
     {
         if (expression is TypedIntegerLiteralExpression integer)
@@ -86,6 +119,36 @@ public sealed class LlvmCodeGenerator
                 context.Int64Type,
                 (ulong)integer.Expression.Value,
                 true);
+        }
+
+        if (expression is TypedIdentifierExpression identifier)
+        {
+            var storage = locals[identifier.Symbol.Declaration];
+
+            return builder.BuildLoad2(
+                GetLlvmType(context, identifier.Type),
+                storage,
+                identifier.Symbol.Name);
+        }
+
+        if (expression is TypedBinaryExpression binary)
+        {
+            var left = GenerateExpression(
+                context,
+                builder,
+                locals,
+                binary.Left);
+
+            var right = GenerateExpression(
+                context,
+                builder,
+                locals,
+                binary.Right);
+
+            return builder.BuildAdd(
+                left,
+                right,
+                "add");
         }
 
         throw new Exception(
@@ -104,7 +167,8 @@ public sealed class LlvmCodeGenerator
             StringType => LLVMTypeRef.CreatePointer(context.Int8Type, 0),
             VoidType => context.VoidType,
 
-            _ => throw new Exception($"Unsupported type: {type.GetType().Name}.")
+            _ => throw new Exception(
+                $"Unsupported type: {type.GetType().Name}.")
         };
     }
 }

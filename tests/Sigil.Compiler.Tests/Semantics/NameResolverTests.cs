@@ -446,6 +446,36 @@ public sealed class NameResolverTests
             identifier.Expression);
     }
 
+    [Fact]
+    public void ResolvesAdditionExpression()
+    {
+        var module = Parse("""
+        fn main() -> Integer {
+            return 20 + 22;
+        }
+        """);
+
+        var bound = new NameResolver().Resolve(module);
+
+        var function = Assert.Single(bound.Declarations);
+
+        var statement = Assert.IsType<BoundReturnStatement>(
+            Assert.Single(function.Body.Statements));
+
+        var expression = Assert.IsType<BoundBinaryExpression>(
+            statement.Value);
+
+        Assert.IsType<BoundIntegerLiteralExpression>(
+            expression.Left);
+
+        Assert.IsType<BoundIntegerLiteralExpression>(
+            expression.Right);
+
+        Assert.Equal(
+            TokenKind.Plus,
+            expression.Expression.OperatorKind);
+    }
+
     private static Module Parse(string source)
     {
         return new Parser(new Lexer(source)).Parse();
