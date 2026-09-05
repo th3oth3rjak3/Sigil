@@ -149,7 +149,7 @@ public class Parser(Lexer lexer)
     {
         var left = ParsePrimaryExpression();
 
-        while (_current.Kind == TokenKind.Plus)
+        while (_current.Kind is TokenKind.Plus or TokenKind.Minus)
         {
             var operatorKind = _current.Kind;
             Advance();

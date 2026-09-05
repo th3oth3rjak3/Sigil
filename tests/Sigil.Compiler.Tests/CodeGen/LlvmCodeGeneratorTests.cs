@@ -50,4 +50,23 @@ public sealed class LlvmCodeGeneratorTests
 
         Assert.Contains("add i64", ir);
     }
+
+    [Fact]
+    public void GeneratesSubtractionExpression()
+    {
+        var module = Parse("""
+        fn main() -> Integer {
+            let x: Integer = 42;
+            let y: Integer = 20;
+            return x - y;
+        }
+        """);
+
+        var bound = new NameResolver().Resolve(module);
+        var typed = new TypeChecker().Check(bound);
+
+        var ir = new LlvmCodeGenerator().Generate(typed);
+
+        Assert.Contains("sub i64", ir);
+    }
 }

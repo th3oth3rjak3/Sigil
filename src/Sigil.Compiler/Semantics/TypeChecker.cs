@@ -163,7 +163,7 @@ public sealed class TypeChecker
         var left = CheckExpression(expression.Left);
         var right = CheckExpression(expression.Right);
 
-        if (expression.Expression.OperatorKind != TokenKind.Plus)
+        if (expression.Expression.OperatorKind is not (TokenKind.Plus or TokenKind.Minus))
         {
             throw new Exception(
                 $"Unsupported binary operator: " +

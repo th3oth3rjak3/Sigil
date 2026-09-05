@@ -133,6 +133,7 @@ public sealed class LlvmCodeGenerator
 
         if (expression is TypedBinaryExpression binary)
         {
+
             var left = GenerateExpression(
                 context,
                 builder,
@@ -145,10 +146,22 @@ public sealed class LlvmCodeGenerator
                 locals,
                 binary.Right);
 
-            return builder.BuildAdd(
-                left,
-                right,
-                "add");
+            return binary.Expression.OperatorKind switch
+            {
+                TokenKind.Plus => builder.BuildAdd(
+                    left,
+                    right,
+                    "add"),
+
+                TokenKind.Minus => builder.BuildSub(
+                    left,
+                    right,
+                    "sub"),
+
+                _ => throw new Exception(
+                    $"Unsupported binary operator: " +
+                    $"{binary.Expression.OperatorKind}.")
+            };
         }
 
         throw new Exception(
