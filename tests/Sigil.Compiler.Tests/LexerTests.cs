@@ -24,4 +24,59 @@ public class LexerTests
         Assert.Equal(new Token(TokenKind.Semicolon, ";", 5, 1), lexer.NextToken());
         Assert.Equal(new Token(TokenKind.EndOfFile, "", 6, 0), lexer.NextToken());
     }
+
+    [Fact]
+    public void LexesLeftParen()
+    {
+        var lexer = new Lexer("(");
+
+        Assert.Equal(new Token(TokenKind.LeftParen, "(", 0, 1), lexer.NextToken());
+        Assert.Equal(new Token(TokenKind.EndOfFile, "", 1, 0), lexer.NextToken());
+    }
+
+    [Fact]
+    public void LexesRightParen()
+    {
+        var lexer = new Lexer(")");
+
+        Assert.Equal(new Token(TokenKind.RightParen, ")", 0, 1), lexer.NextToken());
+        Assert.Equal(new Token(TokenKind.EndOfFile, "", 1, 0), lexer.NextToken());
+    }
+
+    [Fact]
+    public void LexesLeftBrace()
+    {
+        var lexer = new Lexer("{");
+
+        Assert.Equal(new Token(TokenKind.LeftBrace, "{", 0, 1), lexer.NextToken());
+        Assert.Equal(new Token(TokenKind.EndOfFile, "", 1, 0), lexer.NextToken());
+    }
+
+    [Fact]
+    public void LexesRightBrace()
+    {
+        var lexer = new Lexer("}");
+
+        Assert.Equal(new Token(TokenKind.RightBrace, "}", 0, 1), lexer.NextToken());
+        Assert.Equal(new Token(TokenKind.EndOfFile, "", 1, 0), lexer.NextToken());
+    }
+
+    [Fact]
+    public void LexesComma()
+    {
+        var lexer = new Lexer(",");
+
+        Assert.Equal(new Token(TokenKind.Comma, ",", 0, 1), lexer.NextToken());
+        Assert.Equal(new Token(TokenKind.EndOfFile, "", 1, 0), lexer.NextToken());
+    }
+
+
+    [Fact]
+    public void LexesColon()
+    {
+        var lexer = new Lexer(":");
+
+        Assert.Equal(new Token(TokenKind.Colon, ":", 0, 1), lexer.NextToken());
+        Assert.Equal(new Token(TokenKind.EndOfFile, "", 1, 0), lexer.NextToken());
+    }
 }

@@ -26,6 +26,12 @@ public sealed class Lexer
         var token = current switch
         {
             ';' => MakeToken(TokenKind.Semicolon, 1),
+            '(' => MakeToken(TokenKind.LeftParen, 1),
+            ')' => MakeToken(TokenKind.RightParen, 1),
+            '{' => MakeToken(TokenKind.LeftBrace, 1),
+            '}' => MakeToken(TokenKind.RightBrace, 1),
+            ',' => MakeToken(TokenKind.Comma, 1),
+            ':' => MakeToken(TokenKind.Colon, 1),
             var ch when char.IsLetter(ch) || ch == '_' => ReadIdentifier(),
             _ => throw new Exception($"Unexpected character '{current}' at position {_position}.")
 
