@@ -72,6 +72,7 @@ public sealed class Lexer
         var kind = lexeme switch
         {
             "let" => TokenKind.Let,
+            "fn" => TokenKind.Fn,
             _ => TokenKind.Identifier
         };
 

@@ -88,4 +88,13 @@ public class LexerTests
         Assert.Equal(new Token(TokenKind.IntegerLiteral, "42", 0, 2), lexer.NextToken());
         Assert.Equal(new Token(TokenKind.EndOfFile, "", 2, 0), lexer.NextToken());
     }
+
+    [Fact]
+    public void LexesFnKeyword()
+    {
+        var lexer = new Lexer("fn");
+
+        Assert.Equal(new Token(TokenKind.Fn, "fn", 0, 2), lexer.NextToken());
+        Assert.Equal(new Token(TokenKind.EndOfFile, "", 2, 0), lexer.NextToken());
+    }
 }
