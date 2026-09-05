@@ -1,10 +1,10 @@
 # Sigil
 
-**Sigil is a statically typed programming language compiled to native code through LLVM.**
+**Sigil is a statically typed programming language inspired by Lox and compiled to native code through LLVM.**
 
 > 🚧 Sigil is an early-stage language under active development.
 
-The goal of Sigil is to explore the design and implementation of a modern compiled programming language, from source code all the way to a native executable.
+The goal of Sigil is to explore the design and implementation of a small, practical programming language with a straightforward type system and a native compilation pipeline.
 
 ```text
 Sigil Source
@@ -58,6 +58,7 @@ The compiler currently has:
 - Typed AST
 - LLVM IR generation
 - Native compilation through Clang
+- Compiler API
 - Command-line compiler
 - End-to-end compiler tests
 
@@ -84,15 +85,35 @@ Variables are resolved, type checked, lowered to LLVM storage, and loaded when r
 
 # Roadmap
 
-The roadmap is organized as a sequence of **vertical language milestones**.
+Sigil is being developed as a sequence of **vertical language slices**.
 
-Each language feature is intended to travel through the entire compiler pipeline:
+A feature is considered complete when it can travel through the entire compiler:
 
 ```text
-Syntax → AST → Resolution → Type Checking → LLVM → Native Execution
+Source
+  ↓
+Lexer
+  ↓
+Parser
+  ↓
+AST
+  ↓
+Name Resolution
+  ↓
+Bound AST
+  ↓
+Type Checking
+  ↓
+Typed AST
+  ↓
+LLVM Code Generation
+  ↓
+Native Compilation
+  ↓
+End-to-End Test
 ```
 
-The goal is to avoid implementing large amounts of language infrastructure without proving that the feature can actually execute.
+The goal is to avoid building large amounts of compiler infrastructure without proving that the language feature can actually execute.
 
 ---
 
@@ -102,107 +123,58 @@ The goal is to avoid implementing large amounts of language infrastructure witho
 - [x] Lexer
 - [x] Parser
 - [x] AST
-- [x] Name resolver
+- [x] Name resolution
 - [x] Bound AST
-- [x] Type system foundation
+- [x] Type system
 - [x] Type checker
 - [x] Typed AST
 - [x] LLVMSharp integration
 - [x] LLVM IR generation
 - [x] Native compilation through Clang
 - [x] Compiler API
-- [x] Command-line interface
+- [x] Command-line compiler
 - [x] End-to-end source → executable pipeline
 
 ---
 
-## Phase 1 — Expressions & Arithmetic
+## Phase 1 — Expressions
 
 Build the expression system into a useful foundation.
 
 - [x] Integer literals
 - [x] Local variable declarations
-- [x] Identifier resolution
+- [x] Identifier expressions
+- [x] Binary expressions
 - [x] Integer addition
 - [x] Integer subtraction
 - [ ] Integer multiplication
 - [ ] Integer division
 - [ ] Integer remainder
+- [ ] Unary expressions
 - [ ] Unary negation
 - [ ] Parenthesized expressions
 - [ ] Operator precedence
 - [ ] Relational operators
-  - [ ] `==`
-  - [ ] `!=`
   - [ ] `<`
   - [ ] `<=`
   - [ ] `>`
   - [ ] `>=`
 
----
-
-## Phase 2 — Booleans & Logic
-
-Introduce boolean values and logical expressions.
-
-- [ ] `Boolean` type
-- [ ] Boolean literals
-- [ ] Logical NOT
-- [ ] Logical AND
-- [ ] Logical OR
-- [ ] Boolean equality
-- [ ] Short-circuit evaluation
-- [ ] Type-safe boolean expressions
-
-Example:
-
-```sigil
-fn is_positive(x: Integer) -> Boolean {
-    return x > 0;
-}
-```
+- [ ] Equality operators
+  - [ ] `==`
+  - [ ] `!=`
 
 ---
 
-## Phase 3 — Control Flow
-
-Make programs capable of making decisions and repeating work.
-
-- [ ] `if`
-- [ ] `else`
-- [ ] Conditional expressions
-- [ ] `while`
-- [ ] `break`
-- [ ] `continue`
-- [ ] Control-flow-aware type checking
-- [ ] LLVM basic-block generation
-- [ ] Conditional branches
-- [ ] Loops
-
-Example:
-
-```sigil
-fn main() -> Integer {
-    let x: Integer = 10;
-
-    if (x > 5) {
-        return 42;
-    }
-
-    return 0;
-}
-```
-
----
-
-## Phase 4 — Functions
+## Phase 2 — Functions
 
 Move beyond a single hard-coded entry point.
 
 - [ ] Function parameters
 - [ ] Function calls
-- [ ] Multiple return paths
+- [ ] Argument evaluation
 - [ ] Function-local scopes
+- [ ] Multiple functions
 - [ ] Recursive functions
 - [ ] Argument type checking
 - [ ] Return type checking
@@ -222,7 +194,36 @@ fn main() -> Integer {
 
 ---
 
-## Phase 5 — Types
+## Phase 3 — Booleans & Control Flow
+
+Introduce boolean values and the ability to make decisions.
+
+- [ ] Boolean literals
+- [ ] Boolean expressions
+- [ ] Logical NOT
+- [ ] Logical AND
+- [ ] Logical OR
+- [ ] `if`
+- [ ] `else`
+- [ ] `while`
+- [ ] `break`
+- [ ] `continue`
+- [ ] Short-circuit evaluation
+- [ ] LLVM conditional branches
+- [ ] LLVM basic-block generation
+- [ ] LLVM loop generation
+
+Example:
+
+```sigil
+fn is_positive(x: Integer) -> Boolean {
+    return x > 0;
+}
+```
+
+---
+
+## Phase 4 — Core Types
 
 Expand the type system beyond integers and booleans.
 
@@ -233,20 +234,22 @@ Expand the type system beyond integers and booleans.
 - [ ] Type inference where appropriate
 - [ ] Explicit type annotations
 - [ ] Type compatibility rules
+- [ ] `null` / nullable references
 
 ---
 
-## Phase 6 — Composite Data
+## Phase 5 — User-Defined Types
 
-Introduce user-defined and structured data.
+Introduce structured value types.
 
-- [ ] Arrays
-- [ ] Tuples
 - [ ] Structs
-- [ ] Field access
 - [ ] Struct initialization
-- [ ] Nested composite types
+- [ ] Field access
 - [ ] Value semantics
+- [ ] Arrays
+- [ ] Array indexing
+- [ ] Array length
+- [ ] Nested composite types
 - [ ] LLVM aggregate types
 
 Example:
@@ -260,9 +263,45 @@ struct Point {
 
 ---
 
+## Phase 6 — Reference Types & Objects
+
+Introduce reference semantics and object-oriented features.
+
+Sigil uses conventional value/reference semantics:
+
+- Value types are copied when passed or assigned.
+
+- Reference types are represented by references to objects.
+
+- There is no ownership or borrowing system.
+
+- [ ] Classes
+
+- [ ] Object construction
+
+- [ ] Instance fields
+
+- [ ] Instance methods
+
+- [ ] Method calls
+
+- [ ] Reference semantics
+
+- [ ] Reference equality
+
+- [ ] Value equality
+
+- [ ] Heap allocation
+
+- [ ] Object lifetime management
+
+- [ ] Garbage collection / runtime memory management
+
+---
+
 ## Phase 7 — Enums & Pattern Matching
 
-Add algebraic-style data modeling.
+Add additional ways to model data and control program flow.
 
 - [ ] Enums
 - [ ] Enum variants
@@ -270,108 +309,87 @@ Add algebraic-style data modeling.
 - [ ] Pattern matching
 - [ ] Exhaustiveness checking
 - [ ] Destructuring
-- [ ] Match guards
 
 ---
 
-## Phase 8 — References & Memory
+## Phase 8 — Modules
 
-Introduce explicit memory concepts while keeping the language's safety model deliberate.
-
-- [ ] References
-- [ ] Dereferencing
-- [ ] Mutable references
-- [ ] Ownership model
-- [ ] Borrow checking
-- [ ] Stack allocation
-- [ ] Heap allocation
-- [ ] Memory lifetime rules
-
-This phase will depend heavily on the final language semantics and is intentionally less prescriptive than the earlier phases.
-
----
-
-## Phase 9 — Modules & Packages
-
-Turn individual source files into real programs.
+Turn individual source files into larger programs.
 
 - [ ] Multiple source files
-- [ ] Module declarations
+- [ ] Modules
 - [ ] Imports
 - [ ] Exports
-- [ ] Module-level scopes
-- [ ] Cross-module name resolution
 - [ ] Visibility
-- [ ] Package structure
-- [ ] Dependency resolution
+- [ ] Module-level declarations
+- [ ] Cross-module name resolution
 
 ---
 
-## Phase 10 — Generics
+## Phase 9 — Error Handling
 
-Introduce reusable abstractions.
+Define how programs represent and recover from failures.
+
+- [ ] Error type
+- [ ] Result type
+- [ ] Error propagation
+- [ ] Error handling syntax
+- [ ] Pattern matching on errors
+
+---
+
+## Phase 10 — Generic Programming
+
+Introduce reusable abstractions where they provide real value.
 
 - [ ] Generic functions
 - [ ] Generic types
 - [ ] Type parameters
 - [ ] Generic type checking
-- [ ] Monomorphization or alternative generic lowering strategy
-- [ ] Generic constraints / bounds
+- [ ] Generic code generation
+- [ ] Generic constraints, if needed
 
 ---
 
 ## Phase 11 — Standard Library
 
-Build the language's core runtime facilities.
+Build the core facilities needed for useful programs.
 
 - [ ] Strings
 - [ ] Collections
 - [ ] I/O
-- [ ] File access
+- [ ] Filesystem APIs
 - [ ] Process/environment APIs
-- [ ] Error handling
-- [ ] Basic concurrency primitives
+- [ ] Date/time
+- [ ] Networking
+- [ ] Concurrency primitives
 - [ ] Platform abstractions
 
 ---
 
-## Phase 12 — Error Handling
+## Phase 12 — Tooling
 
-Define how programs represent and recover from failure.
+Make Sigil pleasant to develop with.
 
-- [ ] Result type
-- [ ] Error values
-- [ ] Error propagation
-- [ ] `try` / propagation syntax
-- [ ] Pattern matching on errors
-- [ ] Compiler diagnostics for invalid error handling
-
----
-
-## Phase 13 — Tooling
-
-Make Sigil pleasant to actually use.
-
-- [ ] Improved compiler diagnostics
-- [ ] Source locations throughout the compiler
-- [ ] Pretty error messages
+- [ ] Source-aware diagnostics
+- [ ] Pretty compiler errors
 - [ ] Formatter
 - [ ] Language server
 - [ ] Editor integration
-- [ ] REPL / interactive tooling where appropriate
 - [ ] Documentation generation
+- [ ] Package manager
 
 ---
 
-## Phase 14 — Production Compiler
+## Phase 13 — Production Compiler
 
-Move from "language experiment" toward a serious compiler.
+Move from language experiment toward a serious compiler.
 
-- [ ] Cross-platform native compilation
 - [ ] Debug information
-- [ ] Optimization pipeline
-- [ ] LLVM optimization passes
-- [ ] Release/debug build modes
+- [ ] Optimization
+- [ ] LLVM optimization pipeline
+- [ ] Debug/release build modes
+- [ ] Cross-platform native compilation
 - [ ] Incremental compilation
 - [ ] Compiler performance improvements
 - [ ] Deterministic builds
@@ -382,7 +400,7 @@ Move from "language experiment" toward a serious compiler.
 
 # Development Philosophy
 
-Sigil is being developed using **vertical language slices**.
+Sigil is developed using **vertical language slices**.
 
 When a feature is added, it should be represented throughout the compiler:
 
@@ -428,7 +446,7 @@ This approach keeps the compiler grounded in the language it is supposed to impl
 
 # Compiler Architecture
 
-The compiler is divided into distinct stages:
+The compiler is divided into several major stages.
 
 ### Syntax
 
@@ -446,7 +464,7 @@ AST
 
 ### Semantics
 
-Responsible for understanding what the program means.
+Responsible for determining what the program means.
 
 ```text
 AST
@@ -490,10 +508,8 @@ Native executable
 
 Sigil is **not yet ready for production use**.
 
-The compiler architecture is being established first, with language features being added incrementally. Expect breaking syntax changes, incomplete features, and architectural changes while the language design evolves.
+The compiler architecture is being established first, with language features added incrementally. Expect breaking syntax changes, incomplete features, and architectural changes while the language design evolves.
 
-The current milestone is simple:
+The current goal is straightforward:
 
-> **Build a small language that can reliably turn source code into native machine code, then grow the language without losing that end-to-end guarantee.**
-
----
+> **Build a small, practical language that can reliably turn source code into native machine code, then grow the language without losing that end-to-end guarantee.**
