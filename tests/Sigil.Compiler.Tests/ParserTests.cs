@@ -20,4 +20,61 @@ public class ParserTests
         Assert.Empty(function.Parameters);
         Assert.Empty(function.Body.Statements);
     }
+
+    [Fact]
+    public void RejectsFunctionWithoutName()
+    {
+        var parser = new Parser(new Lexer("fn () {}"));
+
+        Assert.Throws<Exception>(() => parser.Parse());
+    }
+
+    [Fact]
+    public void RejectsFunctionWithoutClosingBrace()
+    {
+        var parser = new Parser(new Lexer("fn main() {"));
+
+        Assert.Throws<Exception>(() => parser.Parse());
+    }
+
+    [Fact]
+    public void ParsesReturnStatement()
+    {
+        var parser = new Parser(new Lexer("""
+        fn main() {
+            return 42;
+        }
+        """));
+
+        var module = parser.Parse();
+
+        var function = Assert.IsType<FunctionDeclaration>(
+            module.Declarations[0]);
+
+        Assert.Single(function.Body.Statements);
+
+        var statement = Assert.IsType<ReturnStatement>(function.Body.Statements[0]);
+        var expression = Assert.IsType<IntegerLiteralExpression>(statement.Value);
+        Assert.Equal(42, expression.Value);
+    }
+
+    [Fact]
+    public void ParsesEmptyReturnStatement()
+    {
+        var parser = new Parser(new Lexer("""
+        fn main() {
+            return;
+        }
+        """));
+
+        var module = parser.Parse();
+
+        var function = Assert.IsType<FunctionDeclaration>(
+            module.Declarations[0]);
+
+        var statement = Assert.IsType<ReturnStatement>(
+            Assert.Single(function.Body.Statements));
+
+        Assert.Null(statement.Value);
+    }
 }

@@ -2,18 +2,26 @@ namespace Sigil.Compiler.Syntax;
 
 public class Parser(Lexer lexer)
 {
+    private Token _current;
+
     public Module Parse()
     {
         var declarations = new List<Declaration>();
 
-        var token = lexer.NextToken();
+        _current = lexer.NextToken();
 
-        if (token.Kind == TokenKind.Fn)
+        if (_current.Kind == TokenKind.Fn)
         {
+            Advance();
             declarations.Add(ParseFunction());
         }
 
         return new Module(declarations);
+    }
+
+    private void Advance()
+    {
+        _current = lexer.NextToken();
     }
 
     private FunctionDeclaration ParseFunction()
@@ -44,18 +52,54 @@ public class Parser(Lexer lexer)
 
     private Block ParseBlock()
     {
-        return new Block([]);
+        var statements = new List<Statement>();
+
+        while (_current.Kind != TokenKind.RightBrace)
+        {
+            statements.Add(ParseStatement());
+        }
+
+        return new Block(statements);
     }
 
+    private Statement ParseStatement()
+    {
+        return _current.Kind switch
+        {
+            TokenKind.Return => ParseReturnStatement(),
+            _ => throw new Exception(
+                $"Unexpected token {_current.Kind} at position {_current.Position}.")
+        };
+    }
+
+    private ReturnStatement ParseReturnStatement()
+    {
+        Expect(TokenKind.Return);
+
+        Expression? value = null;
+
+        if (_current.Kind != TokenKind.Semicolon)
+        {
+            var integer = Expect(TokenKind.IntegerLiteral);
+
+            value = new IntegerLiteralExpression(long.Parse(integer.Lexeme));
+        }
+
+        Expect(TokenKind.Semicolon);
+
+        return new ReturnStatement(value);
+    }
     private Token Expect(TokenKind kind)
     {
-        var token = lexer.NextToken();
-
-        if (token.Kind != kind)
+        if (_current.Kind != kind)
         {
             throw new Exception(
-                $"Expected {kind}, but found {token.Kind} at position {token.Position}.");
+                $"Expected {kind}, but found {_current.Kind} at position {_current.Position}.");
         }
+
+
+        var token = _current;
+        Advance();
 
         return token;
     }

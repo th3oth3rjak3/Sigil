@@ -73,6 +73,7 @@ public sealed class Lexer
         {
             "let" => TokenKind.Let,
             "fn" => TokenKind.Fn,
+            "return" => TokenKind.Return,
             _ => TokenKind.Identifier
         };
 
