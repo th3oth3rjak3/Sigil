@@ -163,7 +163,10 @@ public sealed class TypeChecker
         var left = CheckExpression(expression.Left);
         var right = CheckExpression(expression.Right);
 
-        if (expression.Expression.OperatorKind is not (TokenKind.Plus or TokenKind.Minus))
+        if (expression.Expression.OperatorKind is not (
+            TokenKind.Plus
+            or TokenKind.Minus
+            or TokenKind.Star))
         {
             throw new Exception(
                 $"Unsupported binary operator: " +
@@ -179,7 +182,8 @@ public sealed class TypeChecker
         if (left.Type is not IntegerType)
         {
             throw new Exception(
-                "The '+' operator currently only supports Integer operands.");
+                "The binary arithmetic operators currently only support " +
+                "Integer operands.");
         }
 
         return new TypedBinaryExpression(

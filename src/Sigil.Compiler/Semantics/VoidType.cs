@@ -1,5 +1,5 @@
 namespace Sigil.Compiler.Semantics;
 
-public sealed class VoidType : Type
+public sealed class VoidType: Type
 {
 }

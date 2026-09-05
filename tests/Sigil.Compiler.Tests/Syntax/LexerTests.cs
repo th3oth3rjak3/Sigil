@@ -1,4 +1,4 @@
-﻿using Sigil.Compiler.Syntax;
+using Sigil.Compiler.Syntax;
 
 namespace Sigil.Compiler.Tests.Syntax;
 
@@ -145,6 +145,28 @@ public class LexerTests
 
         Assert.Equal(
             new Token(TokenKind.Plus, "+", 3, 1),
+            lexer.NextToken());
+
+        Assert.Equal(
+            new Token(TokenKind.IntegerLiteral, "22", 5, 2),
+            lexer.NextToken());
+
+        Assert.Equal(
+            new Token(TokenKind.EndOfFile, "", 7, 0),
+            lexer.NextToken());
+    }
+
+    [Fact]
+    public void LexesMultiplicationExpression()
+    {
+        var lexer = new Lexer("20 * 22");
+
+        Assert.Equal(
+            new Token(TokenKind.IntegerLiteral, "20", 0, 2),
+            lexer.NextToken());
+
+        Assert.Equal(
+            new Token(TokenKind.Star, "*", 3, 1),
             lexer.NextToken());
 
         Assert.Equal(

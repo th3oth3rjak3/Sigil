@@ -147,9 +147,34 @@ public class Parser(Lexer lexer)
 
     private Expression ParseExpression()
     {
-        var left = ParsePrimaryExpression();
+        return ParseAdditionExpression();
+    }
+
+    private Expression ParseAdditionExpression()
+    {
+        var left = ParseMultiplicationExpression();
 
         while (_current.Kind is TokenKind.Plus or TokenKind.Minus)
+        {
+            var operatorKind = _current.Kind;
+            Advance();
+
+            var right = ParseMultiplicationExpression();
+
+            left = new BinaryExpression(
+                left,
+                operatorKind,
+                right);
+        }
+
+        return left;
+    }
+
+    private Expression ParseMultiplicationExpression()
+    {
+        var left = ParsePrimaryExpression();
+
+        while (_current.Kind is TokenKind.Star or TokenKind.Slash)
         {
             var operatorKind = _current.Kind;
             Advance();

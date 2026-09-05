@@ -1,5 +1,5 @@
 namespace Sigil.Compiler.Semantics;
 
-public sealed class FloatType : Type
+public sealed class FloatType: Type
 {
 }

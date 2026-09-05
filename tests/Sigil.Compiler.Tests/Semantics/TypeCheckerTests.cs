@@ -261,4 +261,29 @@ public sealed class TypeCheckerTests
         Assert.IsType<TypedIntegerLiteralExpression>(expression.Left);
         Assert.IsType<TypedIntegerLiteralExpression>(expression.Right);
     }
+
+    [Fact]
+    public void MultiplicationExpressionHasIntegerType()
+    {
+        var module = Parse("""
+        fn main() -> Integer {
+            return 20 * 22;
+        }
+        """);
+
+        var bound = new NameResolver().Resolve(module);
+        var typed = new TypeChecker().Check(bound);
+
+        var function = Assert.Single(typed.Declarations);
+
+        var statement = Assert.IsType<TypedReturnStatement>(
+            Assert.Single(function.Body.Statements));
+
+        var expression = Assert.IsType<TypedBinaryExpression>(
+            statement.Value);
+
+        Assert.IsType<IntegerType>(expression.Type);
+        Assert.IsType<TypedIntegerLiteralExpression>(expression.Left);
+        Assert.IsType<TypedIntegerLiteralExpression>(expression.Right);
+    }
 }

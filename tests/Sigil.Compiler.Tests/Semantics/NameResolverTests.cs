@@ -5,6 +5,16 @@ namespace Sigil.Compiler.Tests.Semantics;
 
 public sealed class NameResolverTests
 {
+    private static Module Parse(string source)
+    {
+        return new Parser(new Lexer(source)).Parse();
+    }
+
+    private static BoundModule Resolve(Module module)
+    {
+        return new NameResolver().Resolve(module);
+    }
+
     [Fact]
     public void ResolvesModule()
     {
@@ -476,13 +486,33 @@ public sealed class NameResolverTests
             expression.Expression.OperatorKind);
     }
 
-    private static Module Parse(string source)
+    [Fact]
+    public void ResolvesMultiplicationExpression()
     {
-        return new Parser(new Lexer(source)).Parse();
-    }
+        var module = Parse("""
+        fn main() -> Integer {
+            return 20 * 22;
+        }
+        """);
 
-    private static BoundModule Resolve(Module module)
-    {
-        return new NameResolver().Resolve(module);
+        var bound = new NameResolver().Resolve(module);
+
+        var function = Assert.Single(bound.Declarations);
+
+        var statement = Assert.IsType<BoundReturnStatement>(
+            Assert.Single(function.Body.Statements));
+
+        var expression = Assert.IsType<BoundBinaryExpression>(
+            statement.Value);
+
+        Assert.IsType<BoundIntegerLiteralExpression>(
+            expression.Left);
+
+        Assert.IsType<BoundIntegerLiteralExpression>(
+            expression.Right);
+
+        Assert.Equal(
+            TokenKind.Star,
+            expression.Expression.OperatorKind);
     }
 }

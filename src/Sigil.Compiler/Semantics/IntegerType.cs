@@ -1,5 +1,5 @@
 namespace Sigil.Compiler.Semantics;
 
-public sealed class IntegerType : Type
+public sealed class IntegerType: Type
 {
 }

@@ -4,6 +4,50 @@ namespace Sigil.Compiler.Tests.CodeGen;
 
 public sealed class EndToEndCompilationTests
 {
+    private sealed record ProcessResult(
+        int ExitCode,
+        string StandardOutput,
+        string StandardError);
+
+    private static ProcessResult CompileAndRun(string source)
+    {
+        var outputPath = Path.Combine(
+            Path.GetTempPath(),
+            OperatingSystem.IsWindows()
+                ? $"sigil-test-{Guid.NewGuid():N}.exe"
+                : $"sigil-test-{Guid.NewGuid():N}");
+
+        try
+        {
+            new Compiler().Compile(source, outputPath);
+
+            Assert.True(File.Exists(outputPath));
+
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = outputPath,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+            };
+
+            using var process = Process.Start(startInfo)
+                ?? throw new Exception(
+                    "Failed to start compiled executable.");
+
+            process.WaitForExit();
+
+            return new ProcessResult(
+                process.ExitCode,
+                process.StandardOutput.ReadToEnd(),
+                process.StandardError.ReadToEnd());
+        }
+        finally
+        {
+            File.Delete(outputPath);
+        }
+    }
+
     [Fact]
     public void CompilesAndRunsSigilSource()
     {
@@ -13,115 +57,54 @@ public sealed class EndToEndCompilationTests
             }
             """;
 
-        const string outputPath = "/tmp/sigil-test";
+        var result = CompileAndRun(source);
 
-        try
-        {
-            new Compiler().Compile(source, outputPath);
-
-            Assert.True(File.Exists(outputPath));
-
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = outputPath,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-            };
-
-            using var process = Process.Start(startInfo)
-                ?? throw new Exception(
-                    "Failed to start compiled executable.");
-
-            process.WaitForExit();
-
-            Assert.Equal(42, process.ExitCode);
-        }
-        finally
-        {
-            File.Delete(outputPath);
-        }
+        Assert.Equal(42, result.ExitCode);
     }
 
     [Fact]
     public void CompilesAndRunsAdditionExpression()
     {
         const string source = """
-        fn main() -> Integer {
-            let x: Integer = 20;
-            let y: Integer = 22;
-            return x + y;
-        }
-        """;
+            fn main() -> Integer {
+                let x: Integer = 20;
+                let y: Integer = 22;
+                return x + y;
+            }
+            """;
 
-        const string outputPath = "/tmp/sigil-test-addition";
+        var result = CompileAndRun(source);
 
-        try
-        {
-            new Compiler().Compile(source, outputPath);
-
-            Assert.True(File.Exists(outputPath));
-
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = outputPath,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-            };
-
-            using var process = Process.Start(startInfo)
-                ?? throw new Exception(
-                    "Failed to start compiled executable.");
-
-            process.WaitForExit();
-
-            Assert.Equal(42, process.ExitCode);
-        }
-        finally
-        {
-            File.Delete(outputPath);
-        }
+        Assert.Equal(42, result.ExitCode);
     }
 
     [Fact]
     public void CompilesAndRunsSubtractionExpression()
     {
         const string source = """
-        fn main() -> Integer {
-            let x: Integer = 42;
-            let y: Integer = 20;
-            return x - y;
-        }
-        """;
+            fn main() -> Integer {
+                let x: Integer = 42;
+                let y: Integer = 20;
+                return x - y;
+            }
+            """;
 
-        const string outputPath = "/tmp/sigil-test-subtraction";
+        var result = CompileAndRun(source);
 
-        try
-        {
-            new Compiler().Compile(source, outputPath);
+        Assert.Equal(22, result.ExitCode);
+    }
 
-            Assert.True(File.Exists(outputPath));
+    [Fact]
+    public void CompilesAndRunsMultiplicationExpression()
+    {
+        const string source = """
+            fn main() -> Integer {
+                return 5 * 2;
+            }
+            """;
 
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = outputPath,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-            };
+        var result = CompileAndRun(source);
 
-            using var process = Process.Start(startInfo)
-                ?? throw new Exception(
-                    "Failed to start compiled executable.");
-
-            process.WaitForExit();
-
-            Assert.Equal(22, process.ExitCode);
-        }
-        finally
-        {
-            File.Delete(outputPath);
-        }
+        Assert.Equal(10, result.ExitCode);
     }
 }

@@ -1,4 +1,4 @@
-﻿using Sigil.Compiler;
+using Sigil.Compiler;
 
 if (args.Length != 3 || args[1] != "-o")
 {

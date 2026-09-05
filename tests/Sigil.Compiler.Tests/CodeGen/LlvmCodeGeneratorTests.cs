@@ -69,4 +69,23 @@ public sealed class LlvmCodeGeneratorTests
 
         Assert.Contains("sub i64", ir);
     }
+
+    [Fact]
+    public void GeneratesMultiplicationExpression()
+    {
+        var module = Parse("""
+        fn main() -> Integer {
+            let x: Integer = 20;
+            let y: Integer = 22;
+            return x * y;
+        }
+        """);
+
+        var bound = new NameResolver().Resolve(module);
+        var typed = new TypeChecker().Check(bound);
+
+        var ir = new LlvmCodeGenerator().Generate(typed);
+
+        Assert.Contains("mul i64", ir);
+    }
 }

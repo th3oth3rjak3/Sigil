@@ -158,6 +158,12 @@ public sealed class LlvmCodeGenerator
                     right,
                     "sub"),
 
+                TokenKind.Star => builder.BuildMul(
+                    left,
+                    right,
+                    "mul"
+                ),
+
                 _ => throw new Exception(
                     $"Unsupported binary operator: " +
                     $"{binary.Expression.OperatorKind}.")

@@ -8,6 +8,5 @@ public sealed class TypedReturnStatement(
     : TypedStatement
 {
     public ReturnStatement Statement { get; } = statement;
-
     public TypedExpression? Value { get; } = value;
 }

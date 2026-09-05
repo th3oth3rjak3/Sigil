@@ -495,6 +495,27 @@ Clang
 Native executable
 ```
 
+### Performance Philosophy
+
+Sigil is intended to be a compiled, native language with performance suitable for general-purpose applications. The target is broadly comparable to languages such as Go, although exact performance will depend on the program and runtime implementation.
+
+Performance should primarily be an implementation concern.
+
+Sigil intentionally avoids exposing optimization strategies as language features unless they are necessary for defining program semantics. The compiler and runtime should be responsible for producing efficient native code without requiring programmers to annotate ordinary code with optimization directives.
+
+In practice, this means preferring:
+
+- Simple language semantics
+- Straightforward value and reference semantics
+- Automatic compiler optimizations
+- An efficient runtime
+- LLVM's optimization infrastructure
+- Profiling and measurement over speculation
+
+The guiding principle is:
+
+> **Make the language simple. Make the compiler clever.**
+
 ---
 
 # Project Status
