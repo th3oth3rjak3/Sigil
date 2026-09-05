@@ -36,11 +36,13 @@ Name Resolution
      ▼
    LLVM IR
      │
-     ▼
-   Clang/LLVM
-     │
-     ▼
- Native Executable
+     ├──────────────────┐
+     ▼                  ▼
+ Native Compiler   Sigil Runtime
+     │                  │
+     └────────┬─────────┘
+              ▼
+      Native Executable
 ```
 
 ## Current Status
@@ -130,36 +132,89 @@ The goal is to avoid building large amounts of compiler infrastructure without p
 
 ---
 
-## Phase 1 — Expressions
+## Phase 1 — Runtime Foundation
+
+Establish the native runtime boundary between compiled Sigil programs and the runtime implementation.
+
+The compiler is implemented in C#, while the Sigil runtime is implemented separately in Zig.
+
+```text
+Sigil Source
+     │
+     ▼
+C# Compiler
+     │
+     ▼
+LLVM IR
+     │
+     ▼
+Native Compiler
+     │
+     ├───────────────┐
+     ▼               ▼
+Sigil Program   Sigil Runtime
+                     │
+                     ▼
+                   Zig
+```
+
+The compiler should only depend on the runtime's public ABI. Runtime implementation details should remain outside the compiler.
+
+- [ ] Runtime project
+- [ ] Runtime build system
+- [ ] C ABI between compiler-generated code and runtime
+- [ ] Runtime library linking
+- [ ] Runtime initialization
+- [ ] Runtime error handling
+- [ ] Basic runtime allocator
+- [ ] `print` runtime function
+- [ ] `println` runtime function
+- [ ] Integer output
+- [ ] Float output
+- [ ] End-to-end stdout testing
+- [ ] Runtime/stdlib ABI conventions
+- [ ] Runtime library integration with native compilation
+
+---
+
+## Phase 2 — Expressions
 
 Build the expression system into a useful foundation.
 
 - [x] Integer literals
+- [x] Float literals
 - [x] Local variable declarations
 - [x] Identifier expressions
 - [x] Binary expressions
 - [x] Integer addition
 - [x] Integer subtraction
-- [ ] Integer multiplication
-- [ ] Integer division
+- [x] Integer multiplication
+- [x] Integer division
 - [ ] Integer remainder
+- [ ] Float addition _(blocked: needs stdout or another result-verification mechanism)_
+- [ ] Float subtraction _(blocked: needs stdout or another result-verification mechanism)_
+- [ ] Float multiplication _(blocked: needs stdout or another result-verification mechanism)_
+- [ ] Float division _(blocked: needs stdout or another result-verification mechanism)_
 - [ ] Unary expressions
 - [ ] Unary negation
 - [ ] Parenthesized expressions
 - [ ] Operator precedence
+    - [x] addition/multiplication
+    - [ ] unary
+    - [ ] parentheses
+    - [ ] relational/equality
 - [ ] Relational operators
-  - [ ] `<`
-  - [ ] `<=`
-  - [ ] `>`
-  - [ ] `>=`
-
+    - [ ] `<`
+    - [ ] `<=`
+    - [ ] `>`
+    - [ ] `>=`
 - [ ] Equality operators
-  - [ ] `==`
-  - [ ] `!=`
+    - [ ] `==`
+    - [ ] `!=`
 
 ---
 
-## Phase 2 — Functions
+## Phase 3 — Functions
 
 Move beyond a single hard-coded entry point.
 
@@ -187,7 +242,7 @@ fn main() -> Integer {
 
 ---
 
-## Phase 3 — Booleans & Control Flow
+## Phase 4 — Booleans & Control Flow
 
 Introduce boolean values and the ability to make decisions.
 
@@ -216,7 +271,7 @@ fn is_positive(x: Integer) -> Boolean {
 
 ---
 
-## Phase 4 — Core Types
+## Phase 5 — Core Types
 
 Expand the type system beyond integers and booleans.
 
@@ -231,7 +286,7 @@ Expand the type system beyond integers and booleans.
 
 ---
 
-## Phase 5 — User-Defined Types
+## Phase 6 — User-Defined Types
 
 Introduce structured value types.
 
@@ -256,43 +311,31 @@ struct Point {
 
 ---
 
-## Phase 6 — Reference Types & Objects
+## Phase 7 — Reference Types & Objects
 
 Introduce reference semantics and object-oriented features.
 
 Sigil uses conventional value/reference semantics:
 
 - Value types are copied when passed or assigned.
-
 - Reference types are represented by references to objects.
-
 - There is no ownership or borrowing system.
 
 - [ ] Classes
-
 - [ ] Object construction
-
 - [ ] Instance fields
-
 - [ ] Instance methods
-
 - [ ] Method calls
-
 - [ ] Reference semantics
-
 - [ ] Reference equality
-
 - [ ] Value equality
-
-- [ ] Heap allocation
-
-- [ ] Object lifetime management
-
-- [ ] Garbage collection / runtime memory management
+- [ ] Heap-allocated objects
+- [ ] Object representation
+- [ ] Garbage collector integration
 
 ---
 
-## Phase 7 — Enums & Pattern Matching
+## Phase 8 — Enums & Pattern Matching
 
 Add additional ways to model data and control program flow.
 
@@ -305,7 +348,7 @@ Add additional ways to model data and control program flow.
 
 ---
 
-## Phase 8 — Modules
+## Phase 9 — Modules
 
 Turn individual source files into larger programs.
 
@@ -319,7 +362,7 @@ Turn individual source files into larger programs.
 
 ---
 
-## Phase 9 — Error Handling
+## Phase 10 — Error Handling
 
 Define how programs represent and recover from failures.
 
@@ -331,7 +374,7 @@ Define how programs represent and recover from failures.
 
 ---
 
-## Phase 10 — Generic Programming
+## Phase 11 — Generic Programming
 
 Introduce reusable abstractions where they provide real value.
 
@@ -344,7 +387,7 @@ Introduce reusable abstractions where they provide real value.
 
 ---
 
-## Phase 11 — Standard Library
+## Phase 12 — Standard Library
 
 Build the core facilities needed for useful programs.
 
@@ -360,7 +403,7 @@ Build the core facilities needed for useful programs.
 
 ---
 
-## Phase 12 — Tooling
+## Phase 13 — Tooling
 
 Make Sigil pleasant to develop with.
 
@@ -374,7 +417,7 @@ Make Sigil pleasant to develop with.
 
 ---
 
-## Phase 13 — Production Compiler
+## Phase 14 — Production Compiler
 
 Move from language experiment toward a serious compiler.
 
@@ -494,6 +537,52 @@ Clang
   ↓
 Native executable
 ```
+
+### Runtime
+
+The Sigil runtime provides the low-level services required by compiled Sigil programs.
+
+The runtime is implemented independently of the C# compiler. The compiler communicates with it through a small, stable ABI.
+
+```text
+LLVM-generated code
+        │
+        ▼
+    Runtime ABI
+        │
+        ▼
+   Zig Runtime
+```
+
+The runtime will eventually provide facilities such as:
+
+- Memory allocation
+- Garbage collection
+- Object management
+- Runtime initialization
+- Runtime error handling
+- String operations
+- Standard I/O
+- Other low-level services required by the language
+
+The compiler should generate calls to runtime functions rather than embedding runtime implementation details directly into generated code.
+
+### Standard Library
+
+The standard library provides higher-level functionality available to Sigil programs.
+
+Examples include:
+
+- Strings
+- Collections
+- Filesystem APIs
+- Process/environment APIs
+- Date/time
+- Networking
+- Concurrency
+- Platform abstractions
+
+The standard library may be implemented using the Sigil runtime, but the two are separate architectural layers.
 
 ### Performance Philosophy
 
