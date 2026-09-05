@@ -27,6 +27,12 @@ public sealed class Lexer
             return ReadIdentifier(start);
         }
 
+        if (current == ';')
+        {
+            _position++;
+            return new Token(TokenKind.Semicolon, ";", start, 1);
+        }
+
         throw new Exception($"Unexpected character '{current}' at position {_position}.");
     }
 
